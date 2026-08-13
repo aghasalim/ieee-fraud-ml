@@ -7,6 +7,7 @@ data and quietly change the problem.
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import zipfile
@@ -15,6 +16,19 @@ from pathlib import Path
 import pandas as pd
 
 from . import config
+
+
+def _credentials_present() -> bool:
+    """Accept any of the three shapes Kaggle credentials currently take.
+
+    Kaggle moved from a `kaggle.json` username+key pair to a single `KGAT_`
+    bearer token, so checking only for the legacy file rejects a perfectly valid
+    modern setup. The older file still works, hence all three.
+    """
+    if os.getenv("KAGGLE_API_TOKEN") or os.getenv("KAGGLE_KEY"):
+        return True
+    kdir = Path.home() / ".kaggle"
+    return any((kdir / name).exists() for name in ("access_token", "kaggle.json"))
 
 
 def download() -> None:
@@ -26,13 +40,14 @@ def download() -> None:
     "no token" from "rules not accepted".
     """
     config.RAW.mkdir(parents=True, exist_ok=True)
-    token = Path.home() / ".kaggle" / "kaggle.json"
-    if not token.exists():
+    if not _credentials_present():
         sys.exit(
-            "Missing ~/.kaggle/kaggle.json.\n"
-            "  kaggle.com -> Settings -> API -> Create New API Token, then:\n"
-            "  mkdir -p ~/.kaggle && mv ~/Downloads/kaggle.json ~/.kaggle/ "
-            "&& chmod 600 ~/.kaggle/kaggle.json"
+            "No Kaggle credentials found.\n"
+            "  kaggle.com -> Settings -> API -> Create New API Token, then either:\n"
+            "    export KAGGLE_API_TOKEN=KGAT_...\n"
+            "  or:\n"
+            "    mkdir -p ~/.kaggle && echo 'KGAT_...' > ~/.kaggle/access_token"
+            " && chmod 600 ~/.kaggle/access_token"
         )
 
     archive = config.RAW / f"{config.COMPETITION}.zip"

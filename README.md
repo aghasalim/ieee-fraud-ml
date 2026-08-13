@@ -109,7 +109,7 @@ To run it on the actual competition data, you need a Kaggle token
 [rules](https://www.kaggle.com/c/ieee-fraud-detection/rules):
 
 ```bash
-mkdir -p ~/.kaggle && mv ~/Downloads/kaggle.json ~/.kaggle/ && chmod 600 ~/.kaggle/kaggle.json
+mkdir -p ~/.kaggle && echo 'KGAT_your_token_here' > ~/.kaggle/access_token && chmod 600 ~/.kaggle/access_token
 ```
 
 ```bash
