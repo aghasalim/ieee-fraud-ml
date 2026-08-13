@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+.env
+
+# Competition data is not redistributable -- `make data` fetches it from Kaggle.
+data/raw/
+data/processed/
+
+# Trained models and figures are build outputs, reproducible via `make train`.
+artifacts/*.pkl
+artifacts/*.txt
+reports/figures/

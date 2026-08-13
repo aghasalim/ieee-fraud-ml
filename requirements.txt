@@ -1,0 +1,9 @@
+pandas>=2.1
+numpy>=1.26
+scikit-learn>=1.4
+lightgbm>=4.3
+shap>=0.45
+streamlit>=1.36
+matplotlib>=3.8
+pyarrow>=15.0
+joblib>=1.3
