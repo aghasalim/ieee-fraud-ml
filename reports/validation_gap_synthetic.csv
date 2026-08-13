@@ -1,0 +1,5 @@
+split,target encoding,AUC,trains on future,card overlap (fold 1)
+shuffled K-fold,global,0.8975,True,1.0
+shuffled K-fold,fold-local,0.6779,True,1.0
+chronological,global,0.8889,False,0.908
+chronological,fold-local,0.6166,False,0.908
