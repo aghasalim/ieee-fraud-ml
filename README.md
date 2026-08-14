@@ -263,12 +263,32 @@ as a bare 403, which is unhelpful when you're stuck.
 | ✅ | Feature engineering log, including what failed |
 | ✅ | Streamlit predictor with SHAP explanations + Docker |
 | ✅ | Error analysis: segments, review budget, calibration, missed-fraud profile |
-| ⬜ | Hosted demo |
+| ⬜ | Hosted demo — see Deploy below |
 
 The unchecked rows are genuinely not done yet. I'm not going to fill them in
 with synthetic stand-ins.
 
 ---
+
+## Deploy
+
+```bash
+make docker && docker run -p 8501:8501 ieee-fraud-ml
+```
+
+The image runs as UID 1000 (verified), so it drops straight into any host that
+runs containers unprivileged.
+
+**Hugging Face Spaces no longer fits this app on the free tier.** As of this
+writing only *static* Spaces are free on `cpu-basic`; Docker and Streamlit
+Spaces both return `402 Payment Required` without a PRO subscription, and a
+static Space has no Python backend to run LightGBM or SHAP. The `Dockerfile`
+here is Spaces-ready (`app_port: 8501`) if you do have PRO.
+
+**Streamlit Community Cloud** is the free option that runs this unchanged:
+point it at this repo with `app/streamlit_app.py` as the entry point.
+`packages.txt` supplies `libgomp1`, which LightGBM needs and which the default
+image lacks — without it the app dies on import with an opaque OSError.
 
 ## Layout
 

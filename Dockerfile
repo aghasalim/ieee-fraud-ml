@@ -15,6 +15,15 @@ COPY app/ app/
 # regenerates it; the image only needs the artefact.
 COPY artifacts/model.pkl artifacts/model.pkl
 
+# Run as a non-root user. Hugging Face Spaces starts containers as UID 1000, and
+# Streamlit writes config and a metrics file under $HOME on boot -- as root-owned
+# /root that fails with a permission error before the app ever serves a page.
+RUN useradd -m -u 1000 app && chown -R app:app /app
+USER app
+ENV HOME=/home/app \
+    STREAMLIT_BROWSER_GATHER_USAGE_STATS=false \
+    STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
+
 EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
   CMD python -c "import urllib.request;urllib.request.urlopen('http://localhost:8501/_stcore/health')"
