@@ -1,0 +1,18 @@
+segment,value,n,fraud rate,AUC,recall@1%
+ProductCD,4,355414,0.0208,0.703,0.141
+has_identity,0,359603,0.0213,0.7066,0.145
+amount decile,6,59100,0.0203,0.7239,0.21
+ProductCD,1,11639,0.0986,0.7272,0.1
+ProductCD,3,8464,0.0694,0.732,0.138
+amount decile,8,45268,0.0412,0.7478,0.189
+amount decile,9,42878,0.0557,0.7625,0.153
+amount decile,3,41143,0.022,0.7715,0.306
+amount decile,5,49556,0.044,0.774,0.21
+amount decile,4,38862,0.0281,0.7781,0.291
+amount decile,2,51655,0.0327,0.8083,0.279
+amount decile,7,22983,0.046,0.8089,0.204
+amount decile,0,44474,0.0636,0.8452,0.141
+has_identity,1,83302,0.1096,0.8473,0.089
+amount decile,1,46986,0.0334,0.849,0.284
+ProductCD,2,16950,0.0701,0.8683,0.141
+ProductCD,0,50438,0.128,0.872,0.077

@@ -22,6 +22,9 @@ train:           ## feature ablation + overfitting report (honest split)
 train-final:     ## fit on all data and save artifacts/model.pkl for the app
 	$(PY) -m src.fraud.train --final
 
+error-analysis: ## segments, review budget, calibration, missed-fraud profile
+	$(PY) -m src.fraud.error_analysis
+
 app:
 	.venv/bin/streamlit run app/streamlit_app.py
 

@@ -138,6 +138,49 @@ default but dropped the claim that it was protecting anything.
 
 A decision trail containing only confirmed hypotheses is a highlight reel.
 
+## Error analysis: strong on a slice, weak on the bulk
+
+`make error-analysis`. The two weakest segments are also the two largest, and
+they overlap — W-product transactions rarely carry an identity record:
+
+| segment | n | AUC | recall@1% |
+|---|---|---|---|
+| **ProductCD = W** | **355,414** | **0.7030** | 0.141 |
+| **no identity record** | **359,603** | **0.7066** | 0.145 |
+
+So the aggregate is propped up by the minority of rows that have identity data,
+while ~80% of volume scores near 0.70. The missed-fraud profile agrees:
+
+| | hardest 25% of fraud | easiest 25% |
+|---|---|---|
+| has identity record | **30.4%** | **97.5%** |
+| ProductCD = W | **68.6%** | **0.8%** |
+| median C1 (card activity) | 1 | 11 |
+
+Easy fraud is on established cards with identity records. Hard fraud is a quiet
+W-product transaction on a card with no history and no identity data — rows that
+genuinely carry less information, which no hyperparameter recovers.
+
+**As a review queue**, which is how this would actually be used:
+
+| review budget | recall | precision |
+|---|---|---|
+| 0.1% (442 cases) | 2.6% | **100.0%** |
+| 1% (4,429) | 23.6% | 89.5% |
+| 5% (22,145) | **49.5%** | 37.5% |
+
+**Calibration is fine above 25% and badly off below 1%**, where it under-predicts
+by nearly 7× (0.0022 predicted vs 0.0149 actual across 347,463 rows — about
+5,200 frauds hiding in scores the model calls negligible). Irrelevant for AUC,
+decisive for any "auto-approve under 1%" rule, and invisible in every other
+metric here.
+
+Two things I refused to conclude: pooled OOF AUC (0.7954) disagrees with mean
+per-fold AUC (0.8839) because fold models are differently calibrated and ranking
+across them inserts errors deployment never sees — I report per-fold and say why.
+And AUC rising across the validation window is confounded with later folds having
+more training history, so I can't separate the two.
+
 ---
 
 ## The one thing I'd want to be asked about
@@ -219,7 +262,8 @@ as a bare 403, which is unhelpful when you're stuck.
 | ✅ | LightGBM model + overfitting diagnosis |
 | ✅ | Feature engineering log, including what failed |
 | ✅ | Streamlit predictor with SHAP explanations + Docker |
-| ⬜ | Error analysis on the worst-scored cases; hosted demo |
+| ✅ | Error analysis: segments, review budget, calibration, missed-fraud profile |
+| ⬜ | Hosted demo |
 
 The unchecked rows are genuinely not done yet. I'm not going to fill them in
 with synthetic stand-ins.

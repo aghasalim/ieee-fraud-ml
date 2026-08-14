@@ -1,0 +1,6 @@
+metric,hardest 25% of fraud,easiest 25%
+median amount,82.32,49.48
+share with identity,0.304,0.975
+median C1,1.0,11.0
+median D1,1.0,0.0
+share ProductCD=W,0.686,0.008

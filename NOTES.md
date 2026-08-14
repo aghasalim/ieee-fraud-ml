@@ -308,8 +308,101 @@ is not a decision trail, it is a highlight reel.
 
 ---
 
+## 10. Error analysis, starting with a number that contradicted itself
+
+`make error-analysis`, on out-of-fold predictions from the honest split
+(442,905 scored rows — the seed-history block is never validated).
+
+**First surprise: pooled OOF AUC is 0.7954, but the mean per-fold AUC is
+0.8839.** Same predictions, same rows, 0.088 apart.
+
+Neither is a bug. Averaging per-fold AUC asks "how well does a model rank within
+its own scoring period". Pooling asks the model to rank a week-3 transaction
+against a week-20 one — but those scores came from *different* fold models with
+different calibration, so the comparison inserts errors that would never happen
+in deployment, where one model scores everything. The pooled number is the
+pessimistic one here, and it is the wrong question.
+
+I am reporting per-fold AUC as the headline and using pooled predictions only
+for the *segment* analysis below, where every comparison is within-segment and
+mostly within-fold. Worth writing down because picking whichever of two
+defensible numbers looks better is precisely the habit this project exists to
+avoid.
+
+### The model is good at a small slice and weak on the bulk
+
+| segment | n | fraud rate | AUC | recall@1% |
+|---|---|---|---|---|
+| **ProductCD = W** | **355,414** | 2.08% | **0.7030** | 0.141 |
+| **no identity record** | **359,603** | 2.13% | **0.7066** | 0.145 |
+| ProductCD = H | 11,639 | 9.86% | 0.7272 | 0.100 |
+| ProductCD = S | 8,464 | 6.94% | 0.7320 | 0.138 |
+
+The two weakest segments are also the two biggest, and they overlap: W
+transactions rarely carry an identity record. So the aggregate score is being
+propped up by the minority of transactions that have identity data, while ~80%
+of the volume is scored at an AUC near 0.70.
+
+The profile of missed fraud says the same thing from the other end:
+
+| | hardest 25% of fraud | easiest 25% |
+|---|---|---|
+| share with identity record | **30.4%** | **97.5%** |
+| share ProductCD = W | **68.6%** | **0.8%** |
+| median C1 (card activity) | 1 | 11 |
+| median amount | $82.32 | $49.48 |
+
+Fraud the model catches easily is on established cards (C1 = 11) with identity
+records, on non-W products. Fraud it misses is a quiet W-product transaction on
+a card with almost no history and no identity data. That is not a tuning
+problem — those rows genuinely carry less information, and no hyperparameter
+recovers a signal that was never collected.
+
+### What that means for a review queue
+
+A 0.5 threshold is not how this gets used; a fraud team works a queue of fixed
+size.
+
+| review budget | fraud caught | recall | precision |
+|---|---|---|---|
+| 0.1% (442 cases) | 442 | 2.6% | **100.0%** |
+| 1% (4,429) | 3,962 | 23.6% | 89.5% |
+| 5% (22,145) | 8,306 | **49.5%** | 37.5% |
+
+The top 0.1% is perfect — 442 alerts, 442 frauds. Reviewing 1% of transactions
+catches a quarter of fraud at ~90% precision, which is a genuinely useful
+operating point. Catching half requires reviewing 5% and accepting that two
+thirds of the queue is clean.
+
+### Calibration is badly off at the low end
+
+| predicted | n | mean predicted | actual |
+|---|---|---|---|
+| 0–1% | 347,463 | 0.0022 | **0.0149** |
+| 1–5% | 68,752 | 0.0210 | **0.0416** |
+| 25–50% | 3,053 | 0.3512 | 0.3741 |
+| 50–75% | 1,584 | 0.6232 | 0.6250 |
+| 75–100% | 4,263 | 0.9288 | 0.9017 |
+
+Above 25% it is well calibrated. Below 1% it under-predicts by nearly **7×** —
+and that bucket holds 347,463 rows at a real 1.49% fraud rate, roughly 5,200
+frauds sitting in scores the model calls negligible. For ranking (AUC) this is
+irrelevant. For any decision phrased as "auto-approve anything under 1%" it
+matters enormously, and it is invisible in every metric reported so far.
+
+### One thing I could not conclude
+
+AUC by week rises across the validation window (≈0.85 early, ≈0.90 late). The
+tempting read is that the model handles later periods better. It is confounded:
+later weeks belong to later folds, which trained on more history. I cannot
+separate "later period is easier" from "more training data helps" with this
+design, so I am not claiming either.
+
+---
+
 ## Still outstanding
 
-- **Error analysis** on the worst-scored cases.
-- Hyperparameter tuning — deliberately untouched so far, since every number
-  above is about validation design and features rather than model capacity.
+- Hyperparameter tuning — deliberately untouched, since every number above is
+  about validation design, features and calibration rather than model capacity.
+  The segment analysis suggests tuning is not where the remaining gains are.
+- A hosted demo. The Docker image runs locally and is verified.
