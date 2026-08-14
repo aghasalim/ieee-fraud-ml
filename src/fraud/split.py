@@ -49,18 +49,25 @@ def expanding_window_folds(
     df: pd.DataFrame,
     time_col: str = config.TIME_COL,
     n_folds: int | None = None,
+    gap: float = 0.0,
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """Chronological CV: fold *i* trains on everything before a cut and
     validates on the block immediately after it.
 
     Expanding rather than sliding window: fraud patterns drift, but there is no
     evidence that old data becomes actively harmful here, and discarding history
-    would leave the early folds training on very little. Each fold's validation
-    block is contiguous in time, which is what makes the estimate comparable to
-    the real train->test setup.
+    would leave the early folds training on very little.
+
+    `gap` is an embargo, in the units of `time_col`, between the end of training
+    and the start of validation. It defaults to 0, but 0 is *not* the honest
+    setting for this competition: the real test set begins 30 days after train
+    ends, so contiguous folds validate a model on the day after its last
+    training row -- an easier task than the one being scored. Passing
+    `gap=30*config.DAY` reproduces the real handicap.
     """
     n_folds = config.N_FOLDS if n_folds is None else n_folds
-    order = np.argsort(df[time_col].to_numpy(), kind="stable")
+    t = df[time_col].to_numpy()
+    order = np.argsort(t, kind="stable")
     n = len(order)
     # n_folds+1 blocks: the first is train-only seed history, then each
     # subsequent block is validated once.
@@ -69,7 +76,9 @@ def expanding_window_folds(
     for i in range(1, n_folds + 1):
         tr = order[: bounds[i]]
         va = order[bounds[i] : bounds[i + 1]]
-        if len(va):
+        if gap > 0 and len(va):
+            tr = tr[t[tr] <= t[va].min() - gap]
+        if len(va) and len(tr):
             folds.append((tr, va))
     return folds
 

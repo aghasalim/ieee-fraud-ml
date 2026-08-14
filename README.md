@@ -11,56 +11,73 @@ written record of what I tried, what broke, and what I caught. A model that's
 slightly worse with an honest trail behind it is worth more than a good score
 with no story.
 
-> ### Status, up front
->
-> **The competition data is not downloaded yet** — it needs a Kaggle API token
-> and rule acceptance. What's built and tested so far is the validation
-> methodology, and one real experiment run on **synthetic** data.
->
-> Every number below was produced by running the code in this repo. None of them
-> are about fraud yet. I'd rather publish that sentence than a placeholder score.
+## The headline: my own conclusion was wrong, and I caught it
+
+I built the validation splitter before touching a model, then ran a 2×2 to find
+out how much a bad split flatters you: two split strategies × two ways of
+computing a per-card target encoding. First on synthetic data, then — the part
+that mattered — again on all 590,540 real transactions.
+
+**Real data, 432 features, `card1` as the entity** (`make leakage-real`):
+
+| split | target encoding | AUC |
+|---|---|---|
+| shuffled K-fold | global | **0.9557** |
+| shuffled K-fold | fold-local | 0.9495 |
+| chronological | global | 0.9318 |
+| chronological | fold-local | 0.8866 |
+
+On synthetic data I had concluded, confidently, that the leaky *feature* was the
+dominant problem by a factor of four. Re-running on real data reversed it:
+
+| leak source | synthetic | real |
+|---|---|---|
+| global target encoding | +0.2723 | +0.0452 |
+| shuffled split | +0.0613 | +0.0629 |
+| **ratio feature:split** | **4.4×** | **0.72×** |
+
+Best guess at why: in the synthetic setup the leaky encoding was 1 of 6 features
+and carried most of the signal. In the real data it is 1 of 433, competing with
+C1–C14, D1–D15 and 339 V-columns that already encode much of what it knows —
+while the real drift across 182 days is far stronger than the drift term I wrote
+into the generator, so shuffling time away helps the model more than I simulated.
+
+The simulation was still worth building: it correctly predicted that both leaks
+are real and that the honest number sits far below the flattering one. It got the
+*relative magnitudes* wrong, and relative magnitudes were exactly what I'd used
+it to conclude.
+
+### Then the EDA invalidated my "honest" number too
+
+The real test set begins **30 days after** the training period ends. My
+chronological folds were contiguous — training right up to the day before
+validation — which is a materially easier task than the real one. I'd been
+calling that "honest" from the start.
+
+| configuration | AUC |
+|---|---|
+| shuffled + global TE (most flattering) | 0.9557 |
+| chronological + fold-local, contiguous | 0.8866 |
+| **chronological + fold-local, 30-day embargo** | **0.8513** |
+
+**0.1044 AUC** separates the most flattering configuration from the most
+defensible one — roughly the distance between the top of this competition's
+leaderboard and its middle.
+
+Full reasoning in **[NOTES.md](NOTES.md)**.
 
 ---
 
-## The finding so far
+## What the data actually looks like
 
-I built the validation splitter before touching a model, then ran a 2×2 to find
-out how much a bad split actually flatters you: two split strategies × two ways
-of computing a per-card target encoding.
-
-*60,000 synthetic rows, 4,000 recurring cards, 4.0% positive rate — a generator
-built to have the two properties that make this dataset awkward. Reproduce with
-`make validate`.*
-
-| split | target encoding | AUC | trains on future? |
-|---|---|---|---|
-| shuffled K-fold | global | **0.8975** | yes |
-| shuffled K-fold | fold-local | 0.6779 | yes |
-| chronological | global | 0.8889 | no |
-| **chronological** | **fold-local** | **0.6166** | no |
-
-Only the bottom row is defensible. Best-looking to honest is **+0.2809 AUC**.
-
-I expected the shuffled split to be the main problem — it's the mistake everyone
-warns about. It wasn't:
-
-| leak source | isolated effect |
+| | |
 |---|---|
-| global target encoding (split held correct) | **+0.2723** |
-| shuffled split (encoding held correct) | +0.0613 |
-
-**The feature leak is ~4.4× the split leak.** The row that matters most is the
-third one: a *correct* chronological split still reads 0.8889 when the target
-encoding was computed with a `groupby` over the whole dataframe. You can do the
-famous thing right and still be off by 0.27, and it's the more dangerous failure
-because you've already done the bit that gets talked about, so you stop looking.
-
-That's also why this is a 2×2 and not a single before/after. One comparison would
-have read "leaky 0.8975 vs honest 0.6166", and I'd have blamed the split and been
-wrong about the mechanism.
-
-Full reasoning, and the caveats about what the synthetic numbers can't tell me,
-in **[NOTES.md](NOTES.md)**.
+| transactions | 590,540 × 394, joined to 144,233 identity rows |
+| fraud rate | **3.499%** |
+| identity coverage | **24.4%** — hence a left join, and `has_identity` as a feature |
+| columns 50–90% missing | **172** (worst single column: 93.6%) |
+| fraud rate spread | 5.7× across product codes (C: 11.7%, W: 2.0%) |
+| train span | 182 days, test starts 30 days later |
 
 ---
 
@@ -127,15 +144,15 @@ as a bare 403, which is unhelpful when you're stuck.
 |---|---|
 | ✅ | Chronological holdout + expanding-window CV, tested |
 | ✅ | Entity-overlap and temporal-leak diagnostics |
-| ✅ | The 2×2 leakage experiment, runnable by anyone |
+| ✅ | The 2×2 leakage experiment, on synthetic **and** real data |
 | ✅ | Memory-aware loading (590k × 434 doesn't fit at float64) |
-| ⬜ | EDA on the real data — missingness, imbalance, temporal structure |
+| ✅ | EDA on the real data — missingness, imbalance, temporal structure |
 | ⬜ | LightGBM model + overfitting diagnosis |
 | ⬜ | Feature engineering log, including what failed |
 | ⬜ | Streamlit predictor with SHAP explanations, Docker, hosted demo |
 
-The unchecked rows are the ones that need the competition data. I'm not going to
-fill them in with synthetic stand-ins.
+The unchecked rows are genuinely not done yet. I'm not going to fill them in
+with synthetic stand-ins.
 
 ---
 
@@ -143,12 +160,14 @@ fill them in with synthetic stand-ins.
 
 ```
 src/fraud/
-  config.py                     experiment knobs in one place
-  data.py                       download, join identity, downcast dtypes
-  split.py                      the load-bearing file — chronological CV
-  experiments/validation_gap.py the 2×2
-tests/                          14 tests, synthetic data only
-NOTES.md                        the decision trail
+  config.py                      experiment knobs in one place
+  data.py                        download, join identity, downcast dtypes
+  split.py                       the load-bearing file — chronological CV,
+                                 entity overlap, embargo gap
+  experiments/validation_gap.py  the 2×2 on synthetic data
+  experiments/leakage_real.py    the 2×2 on 590k real transactions
+tests/                           14 tests, synthetic data only
+NOTES.md                         the decision trail
 ```
 
 ## License

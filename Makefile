@@ -10,8 +10,11 @@ data:            ## download from Kaggle (needs ~/.kaggle/kaggle.json + accepted
 eda:             ## missingness, imbalance, temporal structure -> reports/
 	$(PY) -m src.fraud.eda
 
-validate:        ## the headline experiment: random KFold vs chronological CV
+validate:        ## the headline experiment on synthetic data (no credentials)
 	$(PY) -m src.fraud.experiments.validation_gap
+
+leakage-real: data   ## the same 2x2 on all 590k real transactions
+	$(PY) -m src.fraud.experiments.leakage_real
 
 features:
 	$(PY) -m src.fraud.features

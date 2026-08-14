@@ -8,6 +8,7 @@ data and quietly change the problem.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -50,10 +51,15 @@ def download() -> None:
             " && chmod 600 ~/.kaggle/access_token"
         )
 
+    # The CLI ships inside the virtualenv, which is not on PATH when this module
+    # is run as `python -m src.fraud.data`. Resolve it next to the interpreter
+    # that is actually running rather than trusting the ambient PATH.
+    kaggle_bin = shutil.which("kaggle") or str(Path(sys.executable).parent / "kaggle")
+
     archive = config.RAW / f"{config.COMPETITION}.zip"
     if not archive.exists():
         proc = subprocess.run(
-            ["kaggle", "competitions", "download", "-c", config.COMPETITION,
+            [kaggle_bin, "competitions", "download", "-c", config.COMPETITION,
              "-p", str(config.RAW)],
             capture_output=True, text=True,
         )
@@ -85,7 +91,10 @@ def reduce_mem(df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
     start = df.memory_usage(deep=True).sum() / 1024**2
     for col in df.columns:
         t = df[col].dtype
-        if t == "object" or str(t).startswith("category"):
+        # Test numeric-ness rather than matching dtype names. pandas 3.0 stores
+        # strings as a `str` dtype instead of `object`, so a name-based check
+        # silently lets ProductCD through and dies on astype("float32").
+        if not pd.api.types.is_numeric_dtype(t) or pd.api.types.is_bool_dtype(t):
             continue
         if str(t).startswith("int"):
             df[col] = pd.to_numeric(df[col], downcast="integer")

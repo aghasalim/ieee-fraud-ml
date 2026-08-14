@@ -97,16 +97,121 @@ ordering and the mechanism, not the specific 0.27.
 
 ---
 
-## Pending — needs the competition data
+## 3. What the real data actually looks like
 
-These are the entries this project actually promises, and they can't be written
-from synthetic data. Placeholders, not claims:
+590,540 transactions × 394 columns, joined left onto 144,233 identity records.
+**3.499% fraud.** Identity is present for only **24.4%** of transactions, which
+is why the join is left and why `has_identity` is a feature rather than a
+filter — an inner join would have silently discarded three quarters of the data.
 
-- **EDA**: missingness structure (many V-columns are >90% NaN), the 4% imbalance,
-  what `TransactionDT` actually is, mixed-type and high-cardinality columns.
-- **A leakage catch on the real data** — the above re-run on IEEE-CIS, where I
-  expect the numbers to differ and the ordering to be the interesting question.
-- **An overfitting diagnosis** — train/validation divergence in LightGBM and what
-  I changed.
-- **A feature that backfired** — with my best guess as to why.
+Missingness is the defining feature of this dataset:
+
+| share of column missing | number of columns |
+|---|---|
+| under 1% | 111 |
+| 1–50% | 109 |
+| **50–90%** | **172** |
+| over 90% | 2 |
+
+Worst single column is 93.6% missing. Fraud rate varies 5.7× across product
+codes (C: 11.7%, W: 2.0%) on wildly different volumes (W is 439,670 of the
+590,540 rows).
+
+`TransactionDT` spans 182 days. The important detail is what comes next.
+
+---
+
+## 4. The finding I got wrong on synthetic data
+
+I re-ran the exact 2×2 from entry 2 on the real data — same design, real card
+entity (`card1`, 13,553 unique), all 432 features. `make leakage-real`.
+
+| split | target encoding | AUC |
+|---|---|---|
+| shuffled K-fold | global | **0.9557** |
+| shuffled K-fold | fold-local | 0.9495 |
+| chronological | global | 0.9318 |
+| chronological | fold-local | 0.8866 |
+
+**The ordering reversed.**
+
+| leak source | synthetic | real |
+|---|---|---|
+| global target encoding | +0.2723 | +0.0452 |
+| shuffled split | +0.0613 | +0.0629 |
+| **ratio feature:split** | **4.4×** | **0.72×** |
+
+On synthetic data I concluded the leaky feature was the dominant problem by a
+factor of four. On real data the leaky *split* is the larger of the two. The
+confident sentence I wrote in entry 2 — "fixing your split does not save you" —
+is still true in the sense that a global encoding costs a real 0.045, but the
+emphasis was wrong, and I'd have carried that wrong emphasis into an interview
+if I'd stopped at the simulation.
+
+My best explanation is proportion. In the synthetic setup `card_te` was one of
+six features and carried most of the available signal, so contaminating it moved
+everything. In the real data it is one of 433 columns, competing with C1–C14,
+D1–D15 and 339 V-columns that already encode a lot of what it knows. Meanwhile
+the real temporal drift over 182 days is far stronger than the linear drift term
+I wrote into the generator, so shuffling time away helps the model much more
+than I simulated.
+
+The lesson I'm taking is not "simulations are useless" — the simulation
+correctly predicted that *both* leaks are real and that the honest number is far
+below the flattering one. It got the *relative magnitudes* wrong, and relative
+magnitudes were exactly what I used it to conclude.
+
+---
+
+## 5. Even my "honest" number was optimistic
+
+The EDA turned up something that invalidated my own validation design: the
+competition's test set starts **30 days after** the training period ends.
+
+My chronological folds were contiguous — training right up to the day before
+validation begins. That is a materially easier task than the real one, where the
+model must survive a month of drift before it sees a single scored row. I had
+been calling that setup "honest" since entry 1.
+
+Adding an embargo gap matching the real one:
+
+| configuration | AUC |
+|---|---|
+| shuffled + global TE (most flattering) | 0.9557 |
+| chronological + fold-local, contiguous | 0.8866 |
+| **chronological + fold-local, 30-day embargo** | **0.8513** |
+
+The embargo costs a further **0.0353**, and the distance from the most
+flattering configuration to the most defensible one is **0.1044 AUC**. For
+scale, that is roughly the distance between the top of this competition's
+leaderboard and the middle of it.
+
+`expanding_window_folds` now takes a `gap` argument. It defaults to 0, but the
+docstring says plainly that 0 is not the honest setting for this dataset.
+
+---
+
+## 6. A bug that only appears on pandas 3
+
+`reduce_mem` decided which columns to downcast by matching dtype *names*
+(`== "object"`). pandas 3.0 stores strings as a `str` dtype rather than
+`object`, so `ProductCD` sailed past the guard and hit `astype("float32")`:
+
+```
+ValueError: could not convert string to float: 'W'
+```
+
+Fixed by testing `pd.api.types.is_numeric_dtype` instead of comparing dtype
+names — asking the question I actually meant rather than one that happened to
+be equivalent under pandas 2. The same class of bug is presumably sitting in a
+lot of `reduce_mem_usage` copies floating around Kaggle notebooks.
+
+---
+
+## Still outstanding
+
+- **An overfitting diagnosis** — train/validation divergence in LightGBM and
+  what I changed in response.
+- **A feature that backfired**, with my best guess as to why.
 - **Error analysis** on the worst-scored cases.
+- **The deployed predictor** with SHAP explanations.
