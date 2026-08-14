@@ -208,10 +208,108 @@ lot of `reduce_mem_usage` copies floating around Kaggle notebooks.
 
 ---
 
+## 7. The feature that backfired — and it wasn't even the leaky one
+
+Incremental ablation under the honest split (chronological, 30-day embargo,
+everything fold-local). `make train`.
+
+| features | n | train AUC | val AUC | delta |
+|---|---|---|---|---|
+| raw columns only | 432 | 0.9945 | 0.8733 | — |
+| + engineered base (time, amount transforms) | 438 | 0.9962 | 0.8761 | +0.0028 |
+| + frequency encoding | 443 | 0.9971 | **0.8839** | **+0.0078** |
+| + uid aggregates | 447 | 0.9975 | 0.8843 | +0.0004 |
+| + target encoding | 449 | **1.0000** | **0.8531** | **−0.0312** |
+
+**Per-entity target encoding made the model materially worse**, and this is the
+*correct* version — fitted fold-locally, no labels from the validation period,
+exactly the fix entry 2 said to apply. It still cost 0.0312 AUC.
+
+Look at the train column: 1.0000. Perfect separation on the training rows. With
+13,553 card values and a `_uid` of far higher cardinality, the encoding hands
+the model a near-unique key per customer, and it memorises the training period's
+fraud outcomes per customer instead of learning what fraud looks like. Across a
+30-day embargo those memorised customers are largely gone or behaving
+differently, so the memorised mapping is worse than useless — it displaces
+signal the model would otherwise have used.
+
+So this feature is bad in two independent ways, and I needed both experiments to
+see it. Computed globally it *inflates* your score (entry 2, +0.045). Computed
+correctly it *lowers* your real score (here, −0.031). The version that looks
+best on a dashboard and the version that works are different features, and
+neither is the one you want.
+
+**uid aggregates were the other disappointment**: +0.0004, which is noise. The
+hypothesis was that deviation from a customer's own average spend would flag
+anomalies. My best guess at why it failed is redundancy — C1–C14 and D1–D15 are
+already per-entity counters and time-deltas built by people who had the raw
+data, so a mean and standard deviation of transaction amount adds little they
+do not already carry. I kept the code, since it costs nothing and the negative
+result is part of the record.
+
+**Frequency encoding was the only real win** (+0.0078). It says how often a
+card, address or email domain appears at all, which is a property of the entity
+rather than of its outcomes — nothing to memorise.
+
+---
+
+## 8. Overfitting: an enormous gap that mostly is not fixable
+
+Train AUC sits between 0.9934 and 1.0000 while validation sits between 0.8672
+and 0.9003 — a gap of roughly **0.09 to 0.13** in every configuration, before
+target encoding makes it worse.
+
+The instinct is to regularise it away. I do not think that is the right reading
+here. The gap barely moves across feature sets (0.1213 → 0.1132 as validation
+*improves*), which suggests it is dominated by the temporal shift rather than by
+model capacity: the model is not memorising noise so much as learning a fraud
+distribution that has genuinely changed by the time validation starts.
+
+The per-fold numbers support that:
+
+| fold | val AUC | best_iter chosen on val |
+|---|---|---|
+| 1 (least history) | 0.8672 | **47** |
+| 2 | 0.8855 | 118 |
+| 3 (most history) | 0.9003 | **395** |
+
+Validation improves monotonically with more training history, and the optimal
+tree count varies **8×** across folds. An early fold with little data saturates
+after 47 trees; a late fold is still improving at 395. Any single global
+`n_estimators` is therefore wrong for most folds — which is worth knowing before
+reporting one tuned number as *the* model's performance.
+
+---
+
+## 9. A leak I predicted, measured, and had to drop
+
+I expected early stopping on the fold being scored to be a meaningful hidden
+leak: it picks the iteration count using validation labels, so the reported
+number should be a best case rather than an estimate. I wrote that claim into
+the code comments before measuring it.
+
+| fold | AUC w/ early stopping | AUC w/ fixed 400 | bonus |
+|---|---|---|---|
+| 1 | 0.8658 | 0.8672 | **−0.0014** |
+| 2 | 0.8886 | 0.8855 | +0.0031 |
+| 3 | 0.9004 | 0.9003 | +0.0001 |
+
+Mean bonus ≈ **+0.0006**. It is nothing, and on one fold early stopping was
+actively *worse* than the fixed count.
+
+The mechanism I described is real, but its size depends on how sharply AUC peaks
+in the iteration count, and here the curve is flat enough near the optimum that
+choosing the peak with hindsight buys almost nothing. I have left the fixed
+`n_estimators` in place because it is still the more defensible default, but I
+am no longer claiming it protects a score that was measurably at risk.
+
+Recording this because a decision trail that only contains confirmed hypotheses
+is not a decision trail, it is a highlight reel.
+
+---
+
 ## Still outstanding
 
-- **An overfitting diagnosis** — train/validation divergence in LightGBM and
-  what I changed in response.
-- **A feature that backfired**, with my best guess as to why.
 - **Error analysis** on the worst-scored cases.
-- **The deployed predictor** with SHAP explanations.
+- Hyperparameter tuning — deliberately untouched so far, since every number
+  above is about validation design and features rather than model capacity.

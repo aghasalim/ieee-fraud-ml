@@ -1,0 +1,6 @@
+features,n_features,train AUC,val AUC,delta,train-val gap
+raw columns only,432,0.9945,0.8733,,0.1213
++ engineered base,438,0.9962,0.8761,0.0028,0.1201
++ frequency encoding,443,0.9971,0.8839,0.0078,0.1132
++ uid aggregates,447,0.9975,0.8843,0.0004,0.1132
++ target encoding,449,1.0,0.8531,-0.0312,0.1469

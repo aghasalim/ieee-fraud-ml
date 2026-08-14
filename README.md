@@ -81,6 +81,65 @@ Full reasoning in **[NOTES.md](NOTES.md)**.
 
 ---
 
+## The feature that backfired
+
+Incremental ablation under the honest split — chronological folds, 30-day
+embargo, every aggregate fold-local (`make train`):
+
+| features | train AUC | val AUC | delta |
+|---|---|---|---|
+| raw columns only | 0.9945 | 0.8733 | — |
+| + engineered base | 0.9962 | 0.8761 | +0.0028 |
+| + frequency encoding | 0.9971 | **0.8839** | **+0.0078** |
+| + uid aggregates | 0.9975 | 0.8843 | +0.0004 |
+| + target encoding | **1.0000** | **0.8531** | **−0.0312** |
+
+Per-entity target encoding made the model **worse**, and this is the *correct*
+version — fold-local, no validation labels. Note the train column hitting
+1.0000: with 13,553 cards it hands the model a near-unique key per customer, so
+it memorises which customers defrauded during training rather than learning what
+fraud looks like. Across a 30-day gap those customers are gone.
+
+Which makes the feature bad in two separate ways, and it took both experiments to
+see it: computed globally it *inflates* your score (+0.045), computed correctly
+it *lowers* your real one (−0.031). The version that looks best and the version
+that works are different features, and neither is the one you want.
+
+`uid` aggregates were the other miss (+0.0004, i.e. noise) — most likely
+redundant with C1–C14 and D1–D15, which are already per-entity counters built by
+people who had the raw data. Kept in the repo; a negative result is still a
+result.
+
+## The overfitting gap that mostly isn't fixable
+
+Train AUC 0.9934–1.0000 against validation 0.8672–0.9003 — a gap of 0.09–0.13
+everywhere. The instinct is to regularise, but the gap barely moves while
+validation *improves* (0.1213 → 0.1132), which points at temporal shift rather
+than model capacity.
+
+| fold | val AUC | best_iter chosen on val |
+|---|---|---|
+| 1 (least history) | 0.8672 | **47** |
+| 2 | 0.8855 | 118 |
+| 3 (most history) | 0.9003 | **395** |
+
+The optimal tree count varies **8×** across folds, so any single `n_estimators`
+is wrong for most of them — worth knowing before quoting one tuned number as
+"the" model score.
+
+## A leak I predicted, measured, and withdrew
+
+I expected early stopping on the scored fold to be a meaningful hidden leak, and
+wrote that into the code before testing it. Measured bonus: **−0.0014, +0.0031,
++0.0001** — a mean of +0.0006, and negative on one fold. The mechanism is real
+but the AUC curve is flat near its optimum here, so picking the peak with
+hindsight buys nothing. I kept the fixed iteration count as the more defensible
+default but dropped the claim that it was protecting anything.
+
+A decision trail containing only confirmed hypotheses is a highlight reel.
+
+---
+
 ## The one thing I'd want to be asked about
 
 "Leakage" bundles two different problems, and separating them changed my design:

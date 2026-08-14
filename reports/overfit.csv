@@ -1,0 +1,4 @@
+fold,best_iter (chosen on val),AUC w/ early stopping,AUC w/ fixed 400,early-stopping bonus,train AUC (fixed),train-val gap
+1,47,0.8658,0.8672,-0.0014,1.0,0.1328
+2,118,0.8886,0.8855,0.0031,0.9991,0.1136
+3,395,0.9004,0.9003,0.0001,0.9934,0.0931
