@@ -232,8 +232,11 @@ mkdir -p ~/.kaggle && echo 'KGAT_your_token_here' > ~/.kaggle/access_token && ch
 ```
 
 ```bash
-make data && make leakage-real && make train
+make data && make eda && make leakage-real && make train
 ```
+
+`make eda` regenerates every figure in the "What the data actually looks like"
+table into `reports/eda_*.csv`.
 
 Then the predictor:
 

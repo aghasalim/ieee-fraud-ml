@@ -1,0 +1,10 @@
+metric,value
+transactions,590540 x 394
+identity rows,144233
+fraud rate,0.03499
+identity coverage,0.2442
+columns 50%-90% missing,172
+worst column missingness,0.9363
+fraud-rate spread across ProductCD,5.73x
+train span (days),182.0
+gap to test period (days),30.0
