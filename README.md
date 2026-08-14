@@ -1,5 +1,9 @@
 # Real-World Tabular ML — a decision trail, not a leaderboard score
 
+**[▶ Live demo](https://ieee-fraud-ml.streamlit.app/)** · every prediction shows
+the SHAP contributions behind it, and the honest validation number rather than
+the flattering one.
+
 [![ci](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/ci.yml/badge.svg)](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/ci.yml)
 [![python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -266,7 +270,7 @@ as a bare 403, which is unhelpful when you're stuck.
 | ✅ | Feature engineering log, including what failed |
 | ✅ | Streamlit predictor with SHAP explanations + Docker |
 | ✅ | Error analysis: segments, review budget, calibration, missed-fraud profile |
-| ⬜ | Hosted demo — see Deploy below |
+| ✅ | [Hosted demo](https://ieee-fraud-ml.streamlit.app/) — Streamlit Community Cloud |
 
 The unchecked rows are genuinely not done yet. I'm not going to fill them in
 with synthetic stand-ins.
@@ -288,10 +292,14 @@ Spaces both return `402 Payment Required` without a PRO subscription, and a
 static Space has no Python backend to run LightGBM or SHAP. The `Dockerfile`
 here is Spaces-ready (`app_port: 8501`) if you do have PRO.
 
-**Streamlit Community Cloud** is the free option that runs this unchanged:
-point it at this repo with `app/streamlit_app.py` as the entry point.
-`packages.txt` supplies `libgomp1`, which LightGBM needs and which the default
-image lacks — without it the app dies on import with an opaque OSError.
+**Streamlit Community Cloud** runs it unchanged, and is where the
+[live demo](https://ieee-fraud-ml.streamlit.app/) is hosted: point it at this
+repo with `app/streamlit_app.py` as the entry point. `packages.txt` supplies
+`libgomp1`, which LightGBM needs and the default image lacks — without it the
+app dies on import with an opaque OSError. Cloud runs Python 3.14 rather than
+the 3.12 used locally; the pickled model and SHAP both load fine there, which
+is worth checking rather than assuming, since a version mismatch breaks the
+unpickle after deploy rather than before.
 
 ## Layout
 

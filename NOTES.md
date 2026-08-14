@@ -400,9 +400,41 @@ design, so I am not claiming either.
 
 ---
 
+## 11. Deployed, and a diagnosis I got wrong twice
+
+Live at **https://ieee-fraud-ml.streamlit.app/**.
+
+Hugging Face Spaces was the original target and does not fit: only *static*
+Spaces are free on `cpu-basic` now, and both the Docker and Streamlit SDKs
+return `402 Payment Required` without PRO. A static Space has no Python backend,
+so LightGBM and SHAP cannot run there at all. I checked by probing all three
+SDKs against the account rather than reading the pricing page.
+
+Then I spent two rounds misdiagnosing the deployed app as private, because
+`curl` to the app URL returned `303` to `share.streamlit.io/-/auth/app`. I
+concluded the sharing setting had not saved, then that the workspace forced
+viewer auth. **Both were wrong.** The setting already read "public and
+searchable", and no workspace-level auth toggle exists.
+
+The actual cause was my test. That redirect is an anonymous-session cookie
+bootstrap; `curl` without `-c/-b` cannot persist the cookie, so it loops through
+the handshake forever and never lands on the app. With a cookie jar it returns
+`200` immediately. A browser with no Streamlit session renders the app fine.
+
+Worth recording because it is the same error the rest of this file is about, in
+a different costume: I trusted an instrument I had not validated, and read a
+confident wrong conclusion off it. The fix in both cases is to check the
+measurement before believing what it says about the thing being measured.
+
+One real finding from the episode: Community Cloud runs **Python 3.14** while I
+had simulated 3.12. The pickled model and SHAP both load there, but a version
+mismatch would have broken the unpickle *after* deploy, not before, so it is
+worth checking rather than assuming.
+
+---
+
 ## Still outstanding
 
 - Hyperparameter tuning — deliberately untouched, since every number above is
   about validation design, features and calibration rather than model capacity.
   The segment analysis suggests tuning is not where the remaining gains are.
-- A hosted demo. The Docker image runs locally and is verified.
