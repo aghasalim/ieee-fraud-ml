@@ -433,6 +433,75 @@ worth checking rather than assuming.
 
 ---
 
+## 12. The leaderboard says my "honest" number was wrong too — in the other direction
+
+Everything above is cross-validation on the training period, which means the
+central claim of this repo — that 0.8513 is the defensible estimate and 0.9557 is
+self-flattery — had never been checked against anything outside my own code. The
+competition's private leaderboard is scored on a period starting 30 days after
+training ends, which is exactly what the embargoed CV was built to imitate. So I
+wrote a prediction into `submit.py` **before** submitting: the score should land
+near 0.8513.
+
+It did not.
+
+| configuration | AUC | vs leaderboard |
+|---|---|---|
+| shuffled + global TE (most flattering) | 0.9557 | **+0.0471** |
+| chronological + global TE | 0.9318 | +0.0232 |
+| chronological + fold-local, contiguous | 0.8866 | −0.0220 |
+| chronological + fold-local, 30-day embargo ("honest") | 0.8513 | **−0.0573** |
+| **private leaderboard (the actual answer)** | **0.9086** | — |
+
+(Public LB 0.9359; private is the larger split and the one that counts.)
+
+**The leakage finding survives.** Shuffled + global target encoding really is
+optimistic by 0.047 — the thing this project was built to demonstrate is real,
+and confirmed by an external scorer.
+
+**But the number I called "the most defensible" is off by nearly as much, in the
+opposite direction.** I spent entry 5 arguing my honest estimate was still too
+optimistic and tightened it further with an embargo. That tightening moved it
+*away* from the truth: the contiguous chronological estimate (0.8866) was closer
+to the leaderboard than the embargoed one I replaced it with.
+
+The mechanism was already sitting in `reports/overfit.csv` and I read it as a
+caveat instead of a prediction:
+
+| fold | training history | val AUC |
+|---|---|---|
+| 1 | least | 0.8672 |
+| 2 | — | 0.8855 |
+| 3 | most | 0.9003 |
+
+AUC climbs monotonically with training history, and the submitted model trains on
+**all 182 days** — more than any fold ever saw. Extrapolating that trend past
+fold 3 lands right around 0.90–0.91. The leaderboard came in at 0.9086.
+
+So the real lesson is one I had half-written and not followed through:
+**expanding-window CV estimates the performance of a model trained on a fraction
+of your data, not of the model you actually ship.** Where performance is still
+climbing with data volume — and entry 8 measured that it is — CV understates the
+deployed model systematically, not randomly. The embargo makes this worse, because
+it removes another 30 days from each fold's training window, a cost the final
+model never pays. It conflates two separate things: the harder task of predicting
+across a gap (which I wanted to measure) and less training data per fold (which is
+an artefact of the method).
+
+I am leaving entry 5 above unedited rather than quietly rewriting it. It was my
+reasoning at the time and it was wrong in a specific, instructive way: I treated
+"more conservative" as a synonym for "more correct". A pessimistic estimate is
+still a biased one, and it costs real decisions — on this number I would have
+rejected a model that was materially better than I believed.
+
+**Caveats on this comparison.** It is one submission of one model, so n=1. The
+final model differs from the CV models in more than training volume (one model
+rather than three fold models). Public and private differ by 0.027 on the same
+predictions, which sets a floor on how finely these numbers can be read — the
+±0.02 differences in the table are near that noise, though the ±0.05 ones are not.
+
+---
+
 ## Still outstanding
 
 - Hyperparameter tuning — deliberately untouched, since every number above is

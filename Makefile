@@ -1,4 +1,4 @@
-.PHONY: setup data eda validate features train app docker test clean
+.PHONY: setup data eda validate features train submit app docker test clean
 PY := .venv/bin/python
 
 setup:
@@ -36,3 +36,6 @@ test:
 
 clean:
 	rm -rf data/processed artifacts/*.pkl reports/figures
+
+submit:          ## score the competition test set -> reports/submission.csv
+	$(PY) -m src.fraud.submit

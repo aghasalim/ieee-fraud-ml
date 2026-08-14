@@ -65,8 +65,45 @@ calling that "honest" from the start.
 | **chronological + fold-local, 30-day embargo** | **0.8513** |
 
 **0.1044 AUC** separates the most flattering configuration from the most
-defensible one — roughly the distance between the top of this competition's
+conservative one — roughly the distance between the top of this competition's
 leaderboard and its middle.
+
+### Then the leaderboard said the "honest" number was wrong too
+
+All of the above is cross-validation on my own training data, so I submitted to
+the competition to check it against a scorer I can't influence. I wrote the
+prediction into `submit.py` before submitting: it should land near 0.8513.
+
+It didn't.
+
+| configuration | AUC | vs leaderboard |
+|---|---|---|
+| shuffled + global TE (most flattering) | 0.9557 | **+0.0471** |
+| chronological + global TE | 0.9318 | +0.0232 |
+| chronological + fold-local, contiguous | 0.8866 | −0.0220 |
+| chronological + fold-local, 30-day embargo | 0.8513 | **−0.0573** |
+| **private leaderboard (the actual answer)** | **0.9086** | — |
+
+**The leakage finding survives** — a shuffled split with global target encoding
+really is 0.047 optimistic, confirmed externally. **But the number I called most
+defensible is off by nearly as much in the other direction**, and the *less*
+careful chronological estimate was closer to the truth than the embargoed one I
+replaced it with.
+
+The explanation was already in my own results and I'd read it as a caveat rather
+than a prediction: validation AUC climbs monotonically with training history
+(0.8672 → 0.8855 → 0.9003 across folds), and the submitted model trains on all
+182 days — more than any fold ever saw. Extrapolate that line and you get ~0.91.
+
+**Expanding-window CV estimates a model trained on a fraction of your data, not
+the one you ship.** The embargo makes it worse, because it removes another 30
+days from each fold's training window — a cost the final model never pays. I had
+treated "more conservative" as a synonym for "more correct"; a pessimistic
+estimate is still a biased one, and on this number I'd have rejected a model that
+was materially better than I believed.
+
+Entry 5 of NOTES.md is left unedited rather than quietly rewritten — it was my
+reasoning at the time, and it was wrong in an instructive way.
 
 Full reasoning in **[NOTES.md](NOTES.md)**.
 
@@ -270,6 +307,7 @@ as a bare 403, which is unhelpful when you're stuck.
 | ✅ | Feature engineering log, including what failed |
 | ✅ | Streamlit predictor with SHAP explanations + Docker |
 | ✅ | Error analysis: segments, review budget, calibration, missed-fraud profile |
+| ✅ | Kaggle submission — private LB **0.9086**, which refuted my own prediction |
 | ✅ | [Hosted demo](https://ieee-fraud-ml.streamlit.app/) — Streamlit Community Cloud |
 
 The unchecked rows are genuinely not done yet. I'm not going to fill them in
