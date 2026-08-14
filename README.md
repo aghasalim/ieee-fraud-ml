@@ -189,7 +189,17 @@ mkdir -p ~/.kaggle && echo 'KGAT_your_token_here' > ~/.kaggle/access_token && ch
 ```
 
 ```bash
-make data && make validate
+make data && make leakage-real && make train
+```
+
+Then the predictor:
+
+```bash
+make train-final && make app
+```
+
+```bash
+docker build -t ieee-fraud-ml . && docker run -p 8501:8501 ieee-fraud-ml
 ```
 
 `data.py` distinguishes "no token" from "rules not accepted" — Kaggle reports both
@@ -206,9 +216,10 @@ as a bare 403, which is unhelpful when you're stuck.
 | ✅ | The 2×2 leakage experiment, on synthetic **and** real data |
 | ✅ | Memory-aware loading (590k × 434 doesn't fit at float64) |
 | ✅ | EDA on the real data — missingness, imbalance, temporal structure |
-| ⬜ | LightGBM model + overfitting diagnosis |
-| ⬜ | Feature engineering log, including what failed |
-| ⬜ | Streamlit predictor with SHAP explanations, Docker, hosted demo |
+| ✅ | LightGBM model + overfitting diagnosis |
+| ✅ | Feature engineering log, including what failed |
+| ✅ | Streamlit predictor with SHAP explanations + Docker |
+| ⬜ | Error analysis on the worst-scored cases; hosted demo |
 
 The unchecked rows are genuinely not done yet. I'm not going to fill them in
 with synthetic stand-ins.

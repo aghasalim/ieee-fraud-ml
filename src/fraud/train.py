@@ -155,7 +155,55 @@ def overfit_report() -> pd.DataFrame:
     return out
 
 
+
+
+# ---------------------------------------------------------------- final fit ---
+FINAL_GROUPS = {"engineered_base", "frequency"}  # uid aggs ~0, target enc harmful
+APP_FIELDS = ["TransactionAmt", "ProductCD", "card1", "card4", "card6", "addr1",
+              "P_emaildomain", "hour", "dayofweek", "C1", "C13", "D1", "D15",
+              "V257", "V258", "has_identity"]
+
+
+def fit_final():
+    """Train on the full period and persist the model for the app.
+
+    Feature set is the ablation winner, not the largest one: uid aggregates
+    bought +0.0004 and target encoding cost 0.0312, so neither is included.
+    """
+    import joblib
+    import lightgbm as lgb
+
+    df = prepare()
+    tr = np.arange(len(df))
+    d, cols = _build(df, tr, FINAL_GROUPS)
+    y = d[config.TARGET].to_numpy()
+
+    m = lgb.LGBMClassifier(
+        n_estimators=N_ESTIMATORS, learning_rate=0.05, num_leaves=63,
+        colsample_bytree=0.7, subsample=0.8, subsample_freq=1,
+        min_child_samples=50, random_state=config.SEED, verbose=-1, n_jobs=-1,
+    )
+    m.fit(d[cols], y)
+
+    config.ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    # Medians fill the fields the app does not ask for. Stated plainly in the UI:
+    # a 16-field form cannot supply 443 features, so the rest are population
+    # defaults and the prediction is a demonstration, not a production score.
+    joblib.dump(
+        {"model": m, "columns": cols,
+         "defaults": d[cols].median(numeric_only=True).to_dict(),
+         "app_fields": APP_FIELDS,
+         "val_auc": 0.8839, "n_train": int(len(d))},
+        config.ARTIFACTS / "model.pkl", compress=3,
+    )
+    print(f"saved {config.ARTIFACTS/'model.pkl'}  features={len(cols)}")
+    return m
+
+
 if __name__ == "__main__":
+    import sys
+    if "--final" in sys.argv:
+        fit_final(); raise SystemExit
     ablation()
     print("\n=== early stopping on the scored fold ===")
     overfit_report()

@@ -16,11 +16,11 @@ validate:        ## the headline experiment on synthetic data (no credentials)
 leakage-real: data   ## the same 2x2 on all 590k real transactions
 	$(PY) -m src.fraud.experiments.leakage_real
 
-features:
-	$(PY) -m src.fraud.features
-
-train:
+train:           ## feature ablation + overfitting report (honest split)
 	$(PY) -m src.fraud.train
+
+train-final:     ## fit on all data and save artifacts/model.pkl for the app
+	$(PY) -m src.fraud.train --final
 
 app:
 	.venv/bin/streamlit run app/streamlit_app.py
