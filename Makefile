@@ -38,7 +38,9 @@ test:
 	$(PY) -m pytest tests/ -q
 
 clean:
-	rm -rf data/processed artifacts/*.pkl reports/figures
+	# reports/figures is tracked and the README embeds it -- regenerate
+	# with `make figures`, do not delete it here.
+	rm -rf data/processed artifacts/*.pkl
 
 submit:          ## score the competition test set -> reports/submission.csv
 	$(PY) -m src.fraud.submit
