@@ -16,7 +16,47 @@ written record of what I tried, what broke, and what I caught. A model that's
 slightly worse with an honest trail behind it is worth more than a good score
 with no story.
 
-## The headline: my own conclusion was wrong, and I caught it
+
+---
+
+## Abstract
+
+IEEE-CIS Fraud Detection is usually reported as a single AUC. This work treats
+the evaluation protocol as the object of study instead, holding the model,
+features and rows fixed and varying only how the folds are cut. Across 590k real
+transactions the resulting AUC spans 0.956 to 0.851 — a 10.4-point range produced
+entirely by protocol, larger than any modelling gain in the repository. The
+mechanism is measured rather than assumed: card overlap between training and
+validation falls from 86% under a shuffled K-fold to 31% under a chronological
+split with a 30-day gap, and the AUC follows it down.
+
+A feature ablation shows the same pattern from the other side. Target encoding
+drives training AUC to exactly 1.000 and costs 3.1 points of validation AUC; a
+leaderboard reporting training performance would have ranked it first. The
+remaining train–validation gap of roughly 0.11 is characterised rather than
+"fixed", because most of it is not closable at this sample size.
+
+Model quality is then reported at the operating points a review team actually
+has. At a 1% alert budget the model recovers 47% of fraud; per-segment AUC ranges
+from 0.70 to 0.89, so the global figure averages over slices where the model is
+substantially weaker.
+
+**Contributions.** (i) A protocol experiment isolating evaluation design from
+modelling, with the leakage mechanism measured. (ii) A feature ablation reporting
+train–validation gap alongside score. (iii) A predicted leak that was measured and
+then withdrawn when the data did not support it. (iv) Error analysis at fixed
+review budgets rather than at a threshold nobody operates.
+
+---
+
+## 1. The headline: my own conclusion was wrong, and I caught it
+
+![the protocol is worth 10.4 AUC points](reports/figures/leakage.png)
+
+Nothing about the model changes across those six bars. The right panel is the
+mechanism: card overlap between train and validation falls from 86% to 31%, and
+the AUC falls with it.
+
 
 I built the validation splitter before touching a model, then ran a 2×2 to find
 out how much a bad split flatters you: two split strategies × two ways of
@@ -110,7 +150,7 @@ Full reasoning in **[NOTES.md](NOTES.md)**.
 
 ---
 
-## What the data actually looks like
+## 2. What the data actually looks like
 
 | | |
 |---|---|
@@ -123,7 +163,7 @@ Full reasoning in **[NOTES.md](NOTES.md)**.
 
 ---
 
-## The feature that backfired
+## 3. The feature that backfired
 
 Incremental ablation under the honest split — chronological folds, 30-day
 embargo, every aggregate fold-local (`make train`):
@@ -152,7 +192,9 @@ redundant with C1–C14 and D1–D15, which are already per-entity counters buil
 people who had the raw data. Kept in the repo; a negative result is still a
 result.
 
-## The overfitting gap that mostly isn't fixable
+![feature groups against the train-validation gap](reports/figures/ablation.png)
+
+## 4. The overfitting gap that mostly isn't fixable
 
 Train AUC 0.9934–1.0000 against validation 0.8672–0.9003 — a gap of 0.09–0.13
 everywhere. The instinct is to regularise, but the gap barely moves while
@@ -169,7 +211,7 @@ The optimal tree count varies **8×** across folds, so any single `n_estimators`
 is wrong for most of them — worth knowing before quoting one tuned number as
 "the" model score.
 
-## A leak I predicted, measured, and withdrew
+## 5. A leak I predicted, measured, and withdrew
 
 I expected early stopping on the scored fold to be a meaningful hidden leak, and
 wrote that into the code before testing it. Measured bonus: **−0.0014, +0.0031,
@@ -180,7 +222,7 @@ default but dropped the claim that it was protecting anything.
 
 A decision trail containing only confirmed hypotheses is a highlight reel.
 
-## Error analysis: strong on a slice, weak on the bulk
+## 6. Error analysis
 
 `make error-analysis`. The two weakest segments are also the two largest, and
 they overlap — W-product transactions rarely carry an identity record:
@@ -225,7 +267,17 @@ more training history, so I can't separate the two.
 
 ---
 
-## The one thing I'd want to be asked about
+![reliability of the predicted probabilities](reports/figures/calibration.png)
+
+![recall and precision at each review budget](reports/figures/review-budget.png)
+
+![per-segment AUC and recall at a 1% budget](reports/figures/segments.png)
+
+A global AUC averages over segments where the model is materially weaker, and it
+summarises thresholds nobody operates at. Both figures above are the same model
+seen from a review team's side of the desk.
+
+## 7. The one thing I'd want to be asked about
 
 "Leakage" bundles two different problems, and separating them changed my design:
 
@@ -248,7 +300,7 @@ green.
 
 ---
 
-## Running it
+## 8. Running it
 
 ```bash
 make setup && make validate
@@ -295,7 +347,7 @@ as a bare 403, which is unhelpful when you're stuck.
 
 ---
 
-## What's here, and what isn't
+## 9. Scope
 
 | | |
 |---|---|
@@ -316,7 +368,7 @@ with synthetic stand-ins.
 
 ---
 
-## Deploy
+## 10. Deploy
 
 ```bash
 make docker && docker run -p 8501:8501 ieee-fraud-ml
@@ -340,7 +392,7 @@ the 3.12 used locally; the pickled model and SHAP both load fine there, which
 is worth checking rather than assuming, since a version mismatch breaks the
 unpickle after deploy rather than before.
 
-## Layout
+## 11. Repository layout
 
 ```
 src/fraud/
@@ -354,7 +406,7 @@ tests/                           14 tests, synthetic data only
 NOTES.md                         the decision trail
 ```
 
-## License
+## 12. Licence
 
 MIT — see [LICENSE](LICENSE). The competition data is not redistributed here;
 `make data` fetches it from Kaggle under their terms.
