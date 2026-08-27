@@ -1,7 +1,7 @@
 # Decision trail
 
 A running log of what I tried, what broke, and what I caught. Newest entries at
-the bottom. This file is the point of the project — the model is downstream of it.
+the bottom. This file is the point of the project, the model is downstream of it.
 
 Ground rule I set for myself: **no number in this file that I did not personally
 run.** Where a result comes from synthetic data rather than the competition data,
@@ -12,25 +12,25 @@ it says so in the heading, not in a footnote.
 ## 1. I built the validation splitter before the model, on purpose
 
 Every score a project like this produces is downstream of one decision: how the
-data was partitioned. Get it wrong and every number afterwards is fiction — but
+data was partitioned. Get it wrong and every number afterwards is fiction, but
 it's *confident* fiction, because a leaky split doesn't crash, it just quietly
 hands you a better number than you earned.
 
-So `src/fraud/split.py` came first, with tests, before any modelling.
+So`src/fraud/split.py` came first, with tests, before any modelling.
 
 While writing it I had to separate two things that get bundled together as
 "leakage", and the distinction turned out to matter more than I expected:
 
-**Temporal leakage** — training on rows that happen *after* the rows you're
+**Temporal leakage**: training on rows that happen *after* the rows you're
 validating on. Unambiguously wrong here. The competition's test set is the period
 immediately after train, so a shuffled split is answering an easier question than
 the one you get scored on.
 
-**Entity overlap** — the same card appearing in both train and validation. My
+**Entity overlap**: the same card appearing in both train and validation. My
 first instinct was that this is also a bug and I should force cards to be
 disjoint across folds. **That instinct was wrong**, and I'm glad I thought about
 it before writing the code. At real inference time you genuinely *do* know a
-card's history — a fraud system scoring a transaction has that card's past
+card's history, a fraud system scoring a transaction has that card's past
 behaviour available. Forcing disjoint cards would be validating a system nobody
 would ever deploy. Overlap only becomes a bug when the *feature* is computed over
 the whole dataset, because then training rows have absorbed statistics from the
@@ -39,18 +39,18 @@ validation period. That's future information wearing a per-entity disguise.
 So: temporal ordering enforced structurally, entity aggregates computed
 fold-locally, entity overlap measured and reported rather than banned.
 
-I kept a deliberately-wrong `random_kfold` in the codebase to measure the gap,
-and there's a test asserting it *still leaks* — otherwise a future refactor could
+I kept a deliberately-wrong`random_kfold` in the codebase to measure the gap,
+and there's a test asserting it *still leaks*, otherwise a future refactor could
 silently make the comparison vacuous while the suite stayed green.
 
 ---
 
-## 2. The leak I expected was real, but it was the small one — synthetic data
+## 2. The leak I expected was real, but it was the small one, synthetic data
 
 **Status: measured on synthetic data.** The Kaggle competition data isn't
 downloaded yet (needs my API token and rule acceptance). Everything below is a
 real measurement from a real run, on data I generated to have the two properties
-that make IEEE-CIS awkward — recurring cards with persistent latent risk, and a
+that make IEEE-CIS awkward, recurring cards with persistent latent risk, and a
 base rate that drifts over time. It demonstrates the *mechanism*. It is not a
 result about fraud, and I'm not going to present it as one.
 
@@ -80,9 +80,9 @@ mistake everyone warns about, and it's the one I was primed to look for.
 The feature leak is about **4.4× larger** than the split leak.
 
 The line that actually changed how I think: **chronological split + global
-encoding still reads 0.8889.** You can do the famous thing right — respect time
-order, feel good about it — and still be off by 0.27 AUC because a feature was
-computed with `groupby` over the entire dataframe before splitting. Fixing your
+encoding still reads 0.8889.** You can do the famous thing right, respect time
+order, feel good about it, and still be off by 0.27 AUC because a feature was
+computed with`groupby` over the entire dataframe before splitting. Fixing your
 split does not save you. It's the more seductive failure, too, because you've
 already done the bit that gets talked about, so you stop looking.
 
@@ -101,16 +101,16 @@ ordering and the mechanism, not the specific 0.27.
 
 590,540 transactions × 394 columns, joined left onto 144,233 identity records.
 **3.499% fraud.** Identity is present for only **24.4%** of transactions, which
-is why the join is left and why `has_identity` is a feature rather than a
-filter — an inner join would have silently discarded three quarters of the data.
+is why the join is left and why`has_identity` is a feature rather than a
+filter, an inner join would have silently discarded three quarters of the data.
 
 Missingness is the defining feature of this dataset:
 
 | share of column missing | number of columns |
 |---|---|
 | under 1% | 111 |
-| 1–50% | 109 |
-| **50–90%** | **172** |
+| 1 to 50% | 109 |
+| **50 to 90%** | **172** |
 | over 90% | 2 |
 
 Worst single column is 93.6% missing. Fraud rate varies 5.7× across product
@@ -123,8 +123,8 @@ codes (C: 11.7%, W: 2.0%) on wildly different volumes (W is 439,670 of the
 
 ## 4. The finding I got wrong on synthetic data
 
-I re-ran the exact 2×2 from entry 2 on the real data — same design, real card
-entity (`card1`, 13,553 unique), all 432 features. `make leakage-real`.
+I re-ran the exact 2×2 from entry 2 on the real data, same design, real card
+entity (`card1`, 13,553 unique), all 432 features.`make leakage-real`.
 
 | split | target encoding | AUC |
 |---|---|---|
@@ -143,20 +143,20 @@ entity (`card1`, 13,553 unique), all 432 features. `make leakage-real`.
 
 On synthetic data I concluded the leaky feature was the dominant problem by a
 factor of four. On real data the leaky *split* is the larger of the two. The
-confident sentence I wrote in entry 2 — "fixing your split does not save you" —
+confident sentence I wrote in entry 2, "fixing your split does not save you"
 is still true in the sense that a global encoding costs a real 0.045, but the
 emphasis was wrong, and I'd have carried that wrong emphasis into an interview
 if I'd stopped at the simulation.
 
-My best explanation is proportion. In the synthetic setup `card_te` was one of
+My best explanation is proportion. In the synthetic setup`card_te` was one of
 six features and carried most of the available signal, so contaminating it moved
-everything. In the real data it is one of 433 columns, competing with C1–C14,
-D1–D15 and 339 V-columns that already encode a lot of what it knows. Meanwhile
+everything. In the real data it is one of 433 columns, competing with C1, C14,
+D1, D15 and 339 V-columns that already encode a lot of what it knows. Meanwhile
 the real temporal drift over 182 days is far stronger than the linear drift term
 I wrote into the generator, so shuffling time away helps the model much more
 than I simulated.
 
-The lesson I'm taking is not "simulations are useless" — the simulation
+The lesson I'm taking is not "simulations are useless", the simulation
 correctly predicted that *both* leaks are real and that the honest number is far
 below the flattering one. It got the *relative magnitudes* wrong, and relative
 magnitudes were exactly what I used it to conclude.
@@ -168,7 +168,7 @@ magnitudes were exactly what I used it to conclude.
 The EDA turned up something that invalidated my own validation design: the
 competition's test set starts **30 days after** the training period ends.
 
-My chronological folds were contiguous — training right up to the day before
+My chronological folds were contiguous, training right up to the day before
 validation begins. That is a materially easier task than the real one, where the
 model must survive a month of drift before it sees a single scored row. I had
 been calling that setup "honest" since entry 1.
@@ -186,7 +186,7 @@ flattering configuration to the most defensible one is **0.1044 AUC**. For
 scale, that is roughly the distance between the top of this competition's
 leaderboard and the middle of it.
 
-`expanding_window_folds` now takes a `gap` argument. It defaults to 0, but the
+`expanding_window_folds` now takes a`gap` argument. It defaults to 0, but the
 docstring says plainly that 0 is not the honest setting for this dataset.
 
 ---
@@ -194,43 +194,43 @@ docstring says plainly that 0 is not the honest setting for this dataset.
 ## 6. A bug that only appears on pandas 3
 
 `reduce_mem` decided which columns to downcast by matching dtype *names*
-(`== "object"`). pandas 3.0 stores strings as a `str` dtype rather than
-`object`, so `ProductCD` sailed past the guard and hit `astype("float32")`:
+(`== "object"`). pandas 3.0 stores strings as a`str` dtype rather than
+`object`, so`ProductCD` sailed past the guard and hit`astype("float32")`:
 
 ```
 ValueError: could not convert string to float: 'W'
 ```
 
-Fixed by testing `pd.api.types.is_numeric_dtype` instead of comparing dtype
-names — asking the question I actually meant rather than one that happened to
+Fixed by testing`pd.api.types.is_numeric_dtype` instead of comparing dtype
+names, asking the question I actually meant rather than one that happened to
 be equivalent under pandas 2. The same class of bug is presumably sitting in a
-lot of `reduce_mem_usage` copies floating around Kaggle notebooks.
+lot of`reduce_mem_usage` copies floating around Kaggle notebooks.
 
 ---
 
-## 7. The feature that backfired — and it wasn't even the leaky one
+## 7. The feature that backfired, and it wasn't even the leaky one
 
 Incremental ablation under the honest split (chronological, 30-day embargo,
-everything fold-local). `make train`.
+everything fold-local).`make train`.
 
 | features | n | train AUC | val AUC | delta |
 |---|---|---|---|---|
-| raw columns only | 432 | 0.9945 | 0.8733 | — |
+| raw columns only | 432 | 0.9945 | 0.8733 |, |
 | + engineered base (time, amount transforms) | 438 | 0.9962 | 0.8761 | +0.0028 |
 | + frequency encoding | 443 | 0.9971 | **0.8839** | **+0.0078** |
 | + uid aggregates | 447 | 0.9975 | 0.8843 | +0.0004 |
 | + target encoding | 449 | **1.0000** | **0.8531** | **−0.0312** |
 
 **Per-entity target encoding made the model materially worse**, and this is the
-*correct* version — fitted fold-locally, no labels from the validation period,
+*correct* version, fitted fold-locally, no labels from the validation period,
 exactly the fix entry 2 said to apply. It still cost 0.0312 AUC.
 
 Look at the train column: 1.0000. Perfect separation on the training rows. With
-13,553 card values and a `_uid` of far higher cardinality, the encoding hands
+13,553 card values and a`_uid` of far higher cardinality, the encoding hands
 the model a near-unique key per customer, and it memorises the training period's
 fraud outcomes per customer instead of learning what fraud looks like. Across a
 30-day embargo those memorised customers are largely gone or behaving
-differently, so the memorised mapping is worse than useless — it displaces
+differently, so the memorised mapping is worse than useless, it displaces
 signal the model would otherwise have used.
 
 So this feature is bad in two independent ways, and I needed both experiments to
@@ -241,7 +241,7 @@ neither is the one you want.
 
 **uid aggregates were the other disappointment**: +0.0004, which is noise. The
 hypothesis was that deviation from a customer's own average spend would flag
-anomalies. My best guess at why it failed is redundancy — C1–C14 and D1–D15 are
+anomalies. My best guess at why it failed is redundancy, C1, C14 and D1, D15 are
 already per-entity counters and time-deltas built by people who had the raw
 data, so a mean and standard deviation of transaction amount adds little they
 do not already carry. I kept the code, since it costs nothing and the negative
@@ -249,14 +249,14 @@ result is part of the record.
 
 **Frequency encoding was the only real win** (+0.0078). It says how often a
 card, address or email domain appears at all, which is a property of the entity
-rather than of its outcomes — nothing to memorise.
+rather than of its outcomes, nothing to memorise.
 
 ---
 
 ## 8. Overfitting: an enormous gap that mostly is not fixable
 
 Train AUC sits between 0.9934 and 1.0000 while validation sits between 0.8672
-and 0.9003 — a gap of roughly **0.09 to 0.13** in every configuration, before
+and 0.9003, a gap of roughly **0.09 to 0.13** in every configuration, before
 target encoding makes it worse.
 
 The instinct is to regularise it away. I do not think that is the right reading
@@ -276,7 +276,7 @@ The per-fold numbers support that:
 Validation improves monotonically with more training history, and the optimal
 tree count varies **8×** across folds. An early fold with little data saturates
 after 47 trees; a late fold is still improving at 395. Any single global
-`n_estimators` is therefore wrong for most folds — which is worth knowing before
+`n_estimators` is therefore wrong for most folds, which is worth knowing before
 reporting one tuned number as *the* model's performance.
 
 ---
@@ -311,14 +311,14 @@ is not a decision trail, it is a highlight reel.
 ## 10. Error analysis, starting with a number that contradicted itself
 
 `make error-analysis`, on out-of-fold predictions from the honest split
-(442,905 scored rows — the seed-history block is never validated).
+(442,905 scored rows, the seed-history block is never validated).
 
 **First surprise: pooled OOF AUC is 0.7954, but the mean per-fold AUC is
 0.8839.** Same predictions, same rows, 0.088 apart.
 
 Neither is a bug. Averaging per-fold AUC asks "how well does a model rank within
 its own scoring period". Pooling asks the model to rank a week-3 transaction
-against a week-20 one — but those scores came from *different* fold models with
+against a week-20 one, but those scores came from *different* fold models with
 different calibration, so the comparison inserts errors that would never happen
 in deployment, where one model scores everything. The pooled number is the
 pessimistic one here, and it is the wrong question.
@@ -355,7 +355,7 @@ The profile of missed fraud says the same thing from the other end:
 Fraud the model catches easily is on established cards (C1 = 11) with identity
 records, on non-W products. Fraud it misses is a quiet W-product transaction on
 a card with almost no history and no identity data. That is not a tuning
-problem — those rows genuinely carry less information, and no hyperparameter
+problem, those rows genuinely carry less information, and no hyperparameter
 recovers a signal that was never collected.
 
 ### What that means for a review queue
@@ -369,7 +369,7 @@ size.
 | 1% (4,429) | 3,962 | 23.6% | 89.5% |
 | 5% (22,145) | 8,306 | **49.5%** | 37.5% |
 
-The top 0.1% is perfect — 442 alerts, 442 frauds. Reviewing 1% of transactions
+The top 0.1% is perfect, 442 alerts, 442 frauds. Reviewing 1% of transactions
 catches a quarter of fraud at ~90% precision, which is a genuinely useful
 operating point. Catching half requires reviewing 5% and accepting that two
 thirds of the queue is clean.
@@ -378,14 +378,13 @@ thirds of the queue is clean.
 
 | predicted | n | mean predicted | actual |
 |---|---|---|---|
-| 0–1% | 347,463 | 0.0022 | **0.0149** |
-| 1–5% | 68,752 | 0.0210 | **0.0416** |
-| 25–50% | 3,053 | 0.3512 | 0.3741 |
-| 50–75% | 1,584 | 0.6232 | 0.6250 |
-| 75–100% | 4,263 | 0.9288 | 0.9017 |
+| 0 to 1% | 347,463 | 0.0022 | **0.0149** |
+| 1 to 5% | 68,752 | 0.0210 | **0.0416** |
+| 25 to 50% | 3,053 | 0.3512 | 0.3741 |
+| 50 to 75% | 1,584 | 0.6232 | 0.6250 |
+| 75 to 100% | 4,263 | 0.9288 | 0.9017 |
 
-Above 25% it is well calibrated. Below 1% it under-predicts by nearly **7×** —
-and that bucket holds 347,463 rows at a real 1.49% fraud rate, roughly 5,200
+Above 25% it is well calibrated. Below 1% it under-predicts by nearly **7×**: and that bucket holds 347,463 rows at a real 1.49% fraud rate, roughly 5,200
 frauds sitting in scores the model calls negligible. For ranking (AUC) this is
 irrelevant. For any decision phrased as "auto-approve anything under 1%" it
 matters enormously, and it is invisible in every metric reported so far.
@@ -405,19 +404,19 @@ design, so I am not claiming either.
 Live at **https://ieee-fraud-ml.streamlit.app/**.
 
 Hugging Face Spaces was the original target and does not fit: only *static*
-Spaces are free on `cpu-basic` now, and both the Docker and Streamlit SDKs
-return `402 Payment Required` without PRO. A static Space has no Python backend,
+Spaces are free on`cpu-basic` now, and both the Docker and Streamlit SDKs
+return`402 Payment Required` without PRO. A static Space has no Python backend,
 so LightGBM and SHAP cannot run there at all. I checked by probing all three
 SDKs against the account rather than reading the pricing page.
 
 Then I spent two rounds misdiagnosing the deployed app as private, because
-`curl` to the app URL returned `303` to `share.streamlit.io/-/auth/app`. I
+`curl` to the app URL returned`303` to`share.streamlit.io/-/auth/app`. I
 concluded the sharing setting had not saved, then that the workspace forced
 viewer auth. **Both were wrong.** The setting already read "public and
 searchable", and no workspace-level auth toggle exists.
 
 The actual cause was my test. That redirect is an anonymous-session cookie
-bootstrap; `curl` without `-c/-b` cannot persist the cookie, so it loops through
+bootstrap;`curl` without`-c/-b` cannot persist the cookie, so it loops through
 the handshake forever and never lands on the app. With a cookie jar it returns
 `200` immediately. A browser with no Streamlit session renders the app fine.
 
@@ -433,14 +432,14 @@ worth checking rather than assuming.
 
 ---
 
-## 12. The leaderboard says my "honest" number was wrong too — in the other direction
+## 12. The leaderboard says my "honest" number was wrong too, in the other direction
 
 Everything above is cross-validation on the training period, which means the
-central claim of this repo — that 0.8513 is the defensible estimate and 0.9557 is
-self-flattery — had never been checked against anything outside my own code. The
+central claim of this repo, that 0.8513 is the defensible estimate and 0.9557 is
+self-flattery, had never been checked against anything outside my own code. The
 competition's private leaderboard is scored on a period starting 30 days after
 training ends, which is exactly what the embargoed CV was built to imitate. So I
-wrote a prediction into `submit.py` **before** submitting: the score should land
+wrote a prediction into`submit.py` **before** submitting: the score should land
 near 0.8513.
 
 It did not.
@@ -451,12 +450,12 @@ It did not.
 | chronological + global TE | 0.9318 | +0.0232 |
 | chronological + fold-local, contiguous | 0.8866 | −0.0220 |
 | chronological + fold-local, 30-day embargo ("honest") | 0.8513 | **−0.0573** |
-| **private leaderboard (the actual answer)** | **0.9086** | — |
+| **private leaderboard (the actual answer)** | **0.9086** |, |
 
 (Public LB 0.9359; private is the larger split and the one that counts.)
 
 **The leakage finding survives.** Shuffled + global target encoding really is
-optimistic by 0.047 — the thing this project was built to demonstrate is real,
+optimistic by 0.047, the thing this project was built to demonstrate is real,
 and confirmed by an external scorer.
 
 **But the number I called "the most defensible" is off by nearly as much, in the
@@ -465,23 +464,23 @@ optimistic and tightened it further with an embargo. That tightening moved it
 *away* from the truth: the contiguous chronological estimate (0.8866) was closer
 to the leaderboard than the embargoed one I replaced it with.
 
-The mechanism was already sitting in `reports/overfit.csv` and I read it as a
+The mechanism was already sitting in`reports/overfit.csv` and I read it as a
 caveat instead of a prediction:
 
 | fold | training history | val AUC |
 |---|---|---|
 | 1 | least | 0.8672 |
-| 2 | — | 0.8855 |
+| 2 |, | 0.8855 |
 | 3 | most | 0.9003 |
 
 AUC climbs monotonically with training history, and the submitted model trains on
-**all 182 days** — more than any fold ever saw. Extrapolating that trend past
-fold 3 lands right around 0.90–0.91. The leaderboard came in at 0.9086.
+**all 182 days**: more than any fold ever saw. Extrapolating that trend past
+fold 3 lands right around 0.90 to 0.91. The leaderboard came in at 0.9086.
 
 So the real lesson is one I had half-written and not followed through:
 **expanding-window CV estimates the performance of a model trained on a fraction
 of your data, not of the model you actually ship.** Where performance is still
-climbing with data volume — and entry 8 measured that it is — CV understates the
+climbing with data volume, and entry 8 measured that it is, CV understates the
 deployed model systematically, not randomly. The embargo makes this worse, because
 it removes another 30 days from each fold's training window, a cost the final
 model never pays. It conflates two separate things: the harder task of predicting
@@ -491,19 +490,19 @@ an artefact of the method).
 I am leaving entry 5 above unedited rather than quietly rewriting it. It was my
 reasoning at the time and it was wrong in a specific, instructive way: I treated
 "more conservative" as a synonym for "more correct". A pessimistic estimate is
-still a biased one, and it costs real decisions — on this number I would have
+still a biased one, and it costs real decisions, on this number I would have
 rejected a model that was materially better than I believed.
 
 **Caveats on this comparison.** It is one submission of one model, so n=1. The
 final model differs from the CV models in more than training volume (one model
 rather than three fold models). Public and private differ by 0.027 on the same
-predictions, which sets a floor on how finely these numbers can be read — the
+predictions, which sets a floor on how finely these numbers can be read, the
 ±0.02 differences in the table are near that noise, though the ±0.05 ones are not.
 
 ---
 
 ## Still outstanding
 
-- Hyperparameter tuning — deliberately untouched, since every number above is
+- Hyperparameter tuning, deliberately untouched, since every number above is
   about validation design, features and calibration rather than model capacity.
   The segment analysis suggests tuning is not where the remaining gains are.
