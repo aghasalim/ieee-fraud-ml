@@ -155,6 +155,15 @@ notes/METHODS.md                 the long-form methods write-up
 NOTES.md                         the decision trail
 ```
 
+## References
+
+The papers and sources this implementation follows. Each one is here because
+the code uses the method, the dataset or the metric it describes.
+
+- **Ke, Meng, Finley et al. LightGBM: A Highly Efficient Gradient Boosting Decision Tree. NeurIPS 2017.** the model.
+- **Lundberg, Lee. A Unified Approach to Interpreting Model Predictions. NeurIPS 2017.** [arXiv:1705.07874](https://arxiv.org/abs/1705.07874) SHAP, used for the decision trail.
+- **Niculescu-Mizil, Caruana. Predicting Good Probabilities With Supervised Learning. ICML 2005.** probability calibration.
+
 ## Author and licence
 
 Aghasalim Mustafazada. MIT, see [LICENSE](LICENSE). The competition data is not
