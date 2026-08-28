@@ -1,7 +1,7 @@
 """Where the model fails, and whether the failures share a shape.
 
-Predictions come from the honest setup -- chronological folds, 30-day embargo,
-fold-local aggregates -- so these are the errors the model would actually make,
+Predictions come from the honest setup, chronological folds, 30-day embargo,
+fold-local aggregates, so these are the errors the model would actually make,
 not the flattering ones a shuffled split produces.
 
 Framed around an alert budget rather than a 0.5 threshold. Nobody reviews every

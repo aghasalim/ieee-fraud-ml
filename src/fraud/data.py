@@ -2,7 +2,7 @@
 
 The two tables are joined left-on-transaction, never inner. Only about a quarter
 of transactions carry an identity record, and *whether* identity is present is
-itself predictive -- an inner join would silently drop three quarters of the
+itself predictive, an inner join would silently drop three quarters of the
 data and quietly change the problem.
 """
 from __future__ import annotations

@@ -26,7 +26,7 @@ error-analysis: ## segments, review budget, calibration, missed-fraud profile
 	$(PY) -m src.fraud.error_analysis
 
 figures:         ## redraw the README figures from reports/*.csv
-	$(PY) -m fraud.figures
+	$(PY) -m src.fraud.figures
 
 app:
 	.venv/bin/streamlit run app/streamlit_app.py

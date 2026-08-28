@@ -8,18 +8,18 @@ where nobody can check them.
 Two different mistakes get conflated under the word "leakage", and this project
 is careful to keep them apart:
 
-1. **Temporal leakage** -- training on rows that occur *after* the rows being
+1. **Temporal leakage**, training on rows that occur *after* the rows being
    validated. This is unambiguously wrong here. The competition's test set is
    the period immediately following train, so a model validated on shuffled data
    is being asked an easier question than the one it will be scored on.
 
-2. **Entity overlap** -- the same card/device appearing in both train and
+2. **Entity overlap**, the same card/device appearing in both train and
    validation. This one is *not* automatically a bug, and calling it one is a
    common overcorrection. At real inference time you genuinely do know a card's
    past behaviour, so a model that uses card history is doing something
    legitimate. It becomes a bug only when the aggregate is computed over the
    whole dataset, because then the training rows have absorbed statistics from
-   the validation period -- future information wearing a per-entity disguise.
+   the validation period, future information wearing a per-entity disguise.
 
 So: temporal ordering is enforced structurally, and entity aggregates are
 computed fold-locally (see `features.py`) rather than banned outright.
@@ -62,7 +62,7 @@ def expanding_window_folds(
     and the start of validation. It defaults to 0, but 0 is *not* the honest
     setting for this competition: the real test set begins 30 days after train
     ends, so contiguous folds validate a model on the day after its last
-    training row -- an easier task than the one being scored. Passing
+    training row, an easier task than the one being scored. Passing
     `gap=30*config.DAY` reproduces the real handicap.
     """
     n_folds = config.N_FOLDS if n_folds is None else n_folds
@@ -86,7 +86,7 @@ def expanding_window_folds(
 def random_kfold(
     df: pd.DataFrame, n_folds: int | None = None, seed: int = config.SEED
 ) -> list[tuple[np.ndarray, np.ndarray]]:
-    """Shuffled K-fold -- deliberately WRONG for this dataset.
+    """Shuffled K-fold, deliberately WRONG for this dataset.
 
     Kept in the codebase on purpose: the gap between this and
     `expanding_window_folds` is the measurement that turns "you should use a
@@ -107,7 +107,7 @@ def entity_overlap(
 ) -> float:
     """Fraction of validation entities that also appear in train.
 
-    Diagnostic, not a pass/fail gate -- see the module docstring on why some
+    Diagnostic, not a pass/fail gate, see the module docstring on why some
     overlap is legitimate.
     """
     col = df[entity_col].to_numpy()

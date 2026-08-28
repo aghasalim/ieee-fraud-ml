@@ -3,8 +3,8 @@
 Why this exists
 ---------------
 Every other number in this repo is cross-validation on the training period. That
-makes the headline claim — that 0.8513 is the honest estimate and 0.9557 is
-self-flattery — untested against anything external. The competition's private
+makes the headline claim, that 0.8513 is the honest estimate and 0.9557 is
+self-flattery, untested against anything external. The competition's private
 leaderboard is scored on a period beginning 30 days after training ends, which
 is precisely the situation the 30-day-embargo CV was built to imitate. So the
 leaderboard is the one check that can tell me whether my "honest" number was
@@ -51,7 +51,7 @@ def build(out_path=None) -> "pd.DataFrame":
     both = pd.concat([tr, te], ignore_index=True, sort=False)
     del tr, te
 
-    # Joint encoding -- see trap 1 in the module docstring.
+    # Joint encoding: see trap 1 in the module docstring.
     for c in both.columns:
         if not pd.api.types.is_numeric_dtype(both[c]):
             both[c] = both[c].astype("category").cat.codes.astype("int32")

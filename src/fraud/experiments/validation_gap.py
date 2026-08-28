@@ -15,8 +15,8 @@ Data
 ----
 Falls back to a synthetic generator when the Kaggle data is absent, so the
 experiment is runnable by anyone. The synthetic set is built to have the two
-properties that make IEEE-CIS awkward -- recurring card entities with persistent
-latent risk, and a base rate that drifts over time -- and nothing else. Numbers
+properties that make IEEE-CIS awkward, recurring card entities with persistent
+latent risk, and a base rate that drifts over time, and nothing else. Numbers
 from it demonstrate the *mechanism*; they are not results about fraud, and the
 README labels them as such.
 """

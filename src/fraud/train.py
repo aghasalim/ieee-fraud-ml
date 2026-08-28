@@ -1,6 +1,6 @@
 """Incremental feature ablation under the honest split, plus overfitting checks.
 
-Scored with chronological folds and a 30-day embargo -- the setting entry 5 of
+Scored with chronological folds and a 30-day embargo, the setting entry 5 of
 NOTES.md argues is the only one comparable to the real train->test gap. Numbers
 here are therefore *lower* than anything produced with contiguous folds, and
 much lower than a shuffled split. That is the point.
@@ -116,7 +116,7 @@ def ablation() -> pd.DataFrame:
 
 
 def overfit_report() -> pd.DataFrame:
-    """What early stopping on the scored fold is worth -- i.e. how much you
+    """What early stopping on the scored fold is worth, i.e. how much you
     flatter yourself by tuning the iteration count on your own validation set."""
     import lightgbm as lgb
 

@@ -51,7 +51,7 @@ jobs:
 
       # linux/amd64 only: that is what Streamlit Community Cloud and most hosts
       # run. arm64 would need QEMU emulation for the LightGBM/SHAP install, which
-      # is far too slow to be worth it -- build locally with `make docker` on
+      # is far too slow to be worth it: build locally with `make docker` on
       # Apple Silicon instead.
       - uses: docker/build-push-action@v6
         with:

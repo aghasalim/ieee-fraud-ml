@@ -1,4 +1,4 @@
-"""EDA on the real competition data — the numbers behind the README's
+"""EDA on the real competition data, the numbers behind the README's
 "What the data actually looks like" table.
 
 This module was referenced by `make eda` and by the README's feature checklist
@@ -17,7 +17,7 @@ import pandas as pd
 from . import config
 
 # Missingness band used in the README. The interesting columns are the ones
-# missing enough to matter but not so much as to be useless -- a column that is
+# missing enough to matter but not so much as to be useless: a column that is
 # 99% empty is an easy drop decision, one that is 70% empty is not.
 MISS_LO, MISS_HI = 0.5, 0.9
 

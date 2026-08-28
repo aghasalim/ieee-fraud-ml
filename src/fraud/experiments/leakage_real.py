@@ -2,8 +2,8 @@
 
 Same design as the synthetic version so the two are directly comparable: two
 split strategies x two ways of computing a per-card target encoding. The
-question this answers is not "does leakage exist" -- the synthetic run settled
-that -- but whether the *ordering* found there survives contact with real data,
+question this answers is not "does leakage exist", the synthetic run settled
+that, but whether the *ordering* found there survives contact with real data,
 where the entity is a genuine card identifier and the features are the
 competition's own.
 

@@ -18,7 +18,7 @@ SMOOTH = 20.0
 
 
 def base(df: pd.DataFrame) -> pd.DataFrame:
-    """Transforms of a single row -- no cross-row information, so no fold needed."""
+    """Transforms of a single row, no cross-row information, so no fold needed."""
     out = df.copy()
     t = out[config.TIME_COL]
     out["hour"] = (t / 3600) % 24

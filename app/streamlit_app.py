@@ -31,7 +31,7 @@ if bundle is None:
 st.caption(
     f"LightGBM over {len(bundle['columns'])} features, trained on "
     f"{bundle['n_train']:,} transactions. Validation AUC **{bundle['val_auc']:.4f}** "
-    "under chronological folds with a 30-day embargo — the honest number, not the "
+    "under chronological folds with a 30-day embargo, the honest number, not the "
     "0.9557 a shuffled split would have reported."
 )
 
@@ -98,7 +98,7 @@ st.divider()
 m1, m2 = st.columns([1, 2])
 m1.metric("fraud probability", f"{p:.2%}")
 base_rate = 0.03499
-m1.caption(f"base rate {base_rate:.2%} — this is {p/base_rate:.1f}× baseline")
+m1.caption(f"base rate {base_rate:.2%}, this is {p/base_rate:.1f}× baseline")
 if p > 0.5:
     m1.error("would be flagged")
 elif p > base_rate * 3:
@@ -107,7 +107,7 @@ else:
     m1.success("looks ordinary")
 
 with m2:
-    st.subheader("Why — SHAP contributions")
+    st.subheader("Why, SHAP contributions")
     try:
         import shap
 
@@ -120,7 +120,7 @@ with m2:
         st.bar_chart(chart.set_index("feature"), horizontal=True)
         st.caption(
             "Positive pushes toward fraud. Features you did not set still "
-            "contribute, from their median value — which is why the anonymised "
+            "contribute, from their median value, which is why the anonymised "
             "C, D and identity columns usually outrank the ones you can type. "
             "They hold signal the form cannot expose, and that is the honest "
             "limitation of a 16-field demo rather than a flaw in the model."
@@ -131,6 +131,6 @@ with m2:
 st.divider()
 st.markdown(
     "The point of this project is **[NOTES.md](https://github.com/aghasalim/"
-    "ieee-fraud-ml/blob/main/NOTES.md)** — the decision trail, including the "
+    "ieee-fraud-ml/blob/main/NOTES.md)**, the decision trail, including the "
     "feature that backfired and a hypothesis I measured and withdrew."
 )

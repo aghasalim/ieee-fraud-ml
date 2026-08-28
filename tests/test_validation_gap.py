@@ -1,7 +1,7 @@
 """Locks in the claim the README is built on.
 
 If a refactor ever makes the leaky configurations stop looking better than the
-honest one, the headline experiment is silently measuring nothing -- and a
+honest one, the headline experiment is silently measuring nothing, and a
 passing test suite would be actively misleading. Hence these run the real code
 path rather than mocking it, just at a smaller size.
 """
