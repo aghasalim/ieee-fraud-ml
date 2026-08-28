@@ -118,10 +118,13 @@ having more training history.
 make setup && make validate
 ```
 
-Reproduces the tables above with no Kaggle account and no credentials: it falls
-back to the synthetic generator when the competition data is absent. `make test`
-runs 14 tests against the real code path rather than mocks, so they'd catch the
-headline claim silently breaking.
+Runs the same 2x2 on synthetic data when the competition data is absent, so it
+needs no Kaggle account and no credentials. It reproduces the finding, not the
+table: on synthetic rows the four cells read 0.8975, 0.6779, 0.8889 and 0.6166,
+an inflation of 0.28 AUC, against 0.07 on the real data. The numbers in the
+table above come from the real 590k transactions and need the token, which is
+`make leakage-real`. `make test` runs 14 tests against the real code path rather
+than mocks, so they would catch the headline claim silently breaking.
 
 For the actual competition data you need a Kaggle token
 (Settings → API → Create New API Token) and to accept the
