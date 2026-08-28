@@ -53,7 +53,7 @@ out how much a bad split flatters you: two split strategies × two ways of
 computing a per-card target encoding. First on synthetic data, then, the part
 that mattered, again on all 590,540 real transactions.
 
-**Real data, 432 features,`card1` as the entity** (`make leakage-real`):
+**Real data, 432 features, `card1` as the entity** (`make leakage-real`):
 
 | split | target encoding | AUC |
 |---|---|---|
@@ -103,7 +103,7 @@ leaderboard and its middle.
 
 All of the above is cross-validation on my own training data, so I submitted to
 the competition to check it against a scorer I can't influence. I wrote the
-prediction into`submit.py` before submitting: it should land near 0.8513.
+prediction into `submit.py` before submitting: it should land near 0.8513.
 
 It didn't.
 
@@ -146,7 +146,7 @@ Full reasoning in **[NOTES.md](NOTES.md)**.
 |---|---|
 | transactions | 590,540 × 394, joined to 144,233 identity rows |
 | fraud rate | **3.499%** |
-| identity coverage | **24.4%**: hence a left join, and`has_identity` as a feature |
+| identity coverage | **24.4%**: hence a left join, and `has_identity` as a feature |
 | columns 50 to 90% missing | **172** (worst single column: 93.6%) |
 | fraud rate spread | 5.7× across product codes (C: 11.7%, W: 2.0%) |
 | train span | 182 days, test starts 30 days later |
@@ -196,7 +196,7 @@ than model capacity.
 | 2 | 0.8855 | 118 |
 | 3 (most history) | 0.9003 | **395** |
 
-The optimal tree count varies **8×** across folds, so any single`n_estimators`
+The optimal tree count varies **8×** across folds, so any single `n_estimators`
 is wrong for most of them, worth knowing before quoting one tuned number as
 "the" model score.
 
@@ -277,7 +277,7 @@ seen from a review team's side of the desk.
 So the splitter enforces time ordering structurally, computes entity aggregates
 fold-locally, and **measures** entity overlap instead of banning it.
 
-`split.py` also keeps a`random_kfold` that is deliberately wrong for this data,
+`split.py` also keeps a `random_kfold` that is deliberately wrong for this data,
 because the gap is the evidence. A test asserts it still leaks, otherwise a
 refactor could quietly make the headline comparison meaningless while CI stayed
 green.
@@ -315,14 +315,14 @@ The image runs as UID 1000 (verified), so it drops straight into any host that
 runs containers unprivileged.
 
 **Hugging Face Spaces no longer fits this app on the free tier.** As of this
-writing only *static* Spaces are free on`cpu-basic`; Docker and Streamlit
-Spaces both return`402 Payment Required` without a PRO subscription, and a
-static Space has no Python backend to run LightGBM or SHAP. The`Dockerfile`
+writing only *static* Spaces are free on `cpu-basic`; Docker and Streamlit
+Spaces both return `402 Payment Required` without a PRO subscription, and a
+static Space has no Python backend to run LightGBM or SHAP. The `Dockerfile`
 here is Spaces-ready (`app_port: 8501`) if you do have PRO.
 
 **Streamlit Community Cloud** runs it unchanged, and is where the
 [live demo](https://ieee-fraud-ml.streamlit.app/) is hosted: point it at this
-repo with`app/streamlit_app.py` as the entry point.`packages.txt` supplies
+repo with `app/streamlit_app.py` as the entry point. `packages.txt` supplies
 `libgomp1`, which LightGBM needs and the default image lacks, without it the
 app dies on import with an opaque OSError. Cloud runs Python 3.14 rather than
 the 3.12 used locally; the pickled model and SHAP both load fine there, which
@@ -353,7 +353,7 @@ make data && make eda && make leakage-real && make train
 ```
 
 `make eda` regenerates every figure in the "What the data actually looks like"
-table into`reports/eda_*.csv`.
+table into `reports/eda_*.csv`.
 
 ```bash
 make train-final && make app

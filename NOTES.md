@@ -16,7 +16,7 @@ data was partitioned. Get it wrong and every number afterwards is fiction, but
 it's *confident* fiction, because a leaky split doesn't crash, it just quietly
 hands you a better number than you earned.
 
-So`src/fraud/split.py` came first, with tests, before any modelling.
+So `src/fraud/split.py` came first, with tests, before any modelling.
 
 While writing it I had to separate two things that get bundled together as
 "leakage", and the distinction turned out to matter more than I expected:
@@ -39,7 +39,7 @@ validation period. That's future information wearing a per-entity disguise.
 So: temporal ordering enforced structurally, entity aggregates computed
 fold-locally, entity overlap measured and reported rather than banned.
 
-I kept a deliberately-wrong`random_kfold` in the codebase to measure the gap,
+I kept a deliberately-wrong `random_kfold` in the codebase to measure the gap,
 and there's a test asserting it *still leaks*, otherwise a future refactor could
 silently make the comparison vacuous while the suite stayed green.
 
@@ -82,7 +82,7 @@ The feature leak is about **4.4× larger** than the split leak.
 The line that actually changed how I think: **chronological split + global
 encoding still reads 0.8889.** You can do the famous thing right, respect time
 order, feel good about it, and still be off by 0.27 AUC because a feature was
-computed with`groupby` over the entire dataframe before splitting. Fixing your
+computed with `groupby` over the entire dataframe before splitting. Fixing your
 split does not save you. It's the more seductive failure, too, because you've
 already done the bit that gets talked about, so you stop looking.
 
@@ -101,7 +101,7 @@ ordering and the mechanism, not the specific 0.27.
 
 590,540 transactions × 394 columns, joined left onto 144,233 identity records.
 **3.499% fraud.** Identity is present for only **24.4%** of transactions, which
-is why the join is left and why`has_identity` is a feature rather than a
+is why the join is left and why `has_identity` is a feature rather than a
 filter, an inner join would have silently discarded three quarters of the data.
 
 Missingness is the defining feature of this dataset:
@@ -124,7 +124,7 @@ codes (C: 11.7%, W: 2.0%) on wildly different volumes (W is 439,670 of the
 ## 4. The finding I got wrong on synthetic data
 
 I re-ran the exact 2×2 from entry 2 on the real data, same design, real card
-entity (`card1`, 13,553 unique), all 432 features.`make leakage-real`.
+entity (`card1`, 13,553 unique), all 432 features. `make leakage-real`.
 
 | split | target encoding | AUC |
 |---|---|---|
@@ -148,7 +148,7 @@ is still true in the sense that a global encoding costs a real 0.045, but the
 emphasis was wrong, and I'd have carried that wrong emphasis into an interview
 if I'd stopped at the simulation.
 
-My best explanation is proportion. In the synthetic setup`card_te` was one of
+My best explanation is proportion. In the synthetic setup `card_te` was one of
 six features and carried most of the available signal, so contaminating it moved
 everything. In the real data it is one of 433 columns, competing with C1, C14,
 D1, D15 and 339 V-columns that already encode a lot of what it knows. Meanwhile
@@ -186,7 +186,7 @@ flattering configuration to the most defensible one is **0.1044 AUC**. For
 scale, that is roughly the distance between the top of this competition's
 leaderboard and the middle of it.
 
-`expanding_window_folds` now takes a`gap` argument. It defaults to 0, but the
+`expanding_window_folds` now takes a `gap` argument. It defaults to 0, but the
 docstring says plainly that 0 is not the honest setting for this dataset.
 
 ---
@@ -194,24 +194,24 @@ docstring says plainly that 0 is not the honest setting for this dataset.
 ## 6. A bug that only appears on pandas 3
 
 `reduce_mem` decided which columns to downcast by matching dtype *names*
-(`== "object"`). pandas 3.0 stores strings as a`str` dtype rather than
-`object`, so`ProductCD` sailed past the guard and hit`astype("float32")`:
+(`== "object"`). pandas 3.0 stores strings as a `str` dtype rather than
+`object`, so `ProductCD` sailed past the guard and hit `astype("float32")`:
 
 ```
 ValueError: could not convert string to float: 'W'
 ```
 
-Fixed by testing`pd.api.types.is_numeric_dtype` instead of comparing dtype
+Fixed by testing `pd.api.types.is_numeric_dtype` instead of comparing dtype
 names, asking the question I actually meant rather than one that happened to
 be equivalent under pandas 2. The same class of bug is presumably sitting in a
-lot of`reduce_mem_usage` copies floating around Kaggle notebooks.
+lot of `reduce_mem_usage` copies floating around Kaggle notebooks.
 
 ---
 
 ## 7. The feature that backfired, and it wasn't even the leaky one
 
 Incremental ablation under the honest split (chronological, 30-day embargo,
-everything fold-local).`make train`.
+everything fold-local). `make train`.
 
 | features | n | train AUC | val AUC | delta |
 |---|---|---|---|---|
@@ -226,7 +226,7 @@ everything fold-local).`make train`.
 exactly the fix entry 2 said to apply. It still cost 0.0312 AUC.
 
 Look at the train column: 1.0000. Perfect separation on the training rows. With
-13,553 card values and a`_uid` of far higher cardinality, the encoding hands
+13,553 card values and a `_uid` of far higher cardinality, the encoding hands
 the model a near-unique key per customer, and it memorises the training period's
 fraud outcomes per customer instead of learning what fraud looks like. Across a
 30-day embargo those memorised customers are largely gone or behaving
@@ -404,19 +404,19 @@ design, so I am not claiming either.
 Live at **https://ieee-fraud-ml.streamlit.app/**.
 
 Hugging Face Spaces was the original target and does not fit: only *static*
-Spaces are free on`cpu-basic` now, and both the Docker and Streamlit SDKs
-return`402 Payment Required` without PRO. A static Space has no Python backend,
+Spaces are free on `cpu-basic` now, and both the Docker and Streamlit SDKs
+return `402 Payment Required` without PRO. A static Space has no Python backend,
 so LightGBM and SHAP cannot run there at all. I checked by probing all three
 SDKs against the account rather than reading the pricing page.
 
 Then I spent two rounds misdiagnosing the deployed app as private, because
-`curl` to the app URL returned`303` to`share.streamlit.io/-/auth/app`. I
+`curl` to the app URL returned `303` to `share.streamlit.io/-/auth/app`. I
 concluded the sharing setting had not saved, then that the workspace forced
 viewer auth. **Both were wrong.** The setting already read "public and
 searchable", and no workspace-level auth toggle exists.
 
 The actual cause was my test. That redirect is an anonymous-session cookie
-bootstrap;`curl` without`-c/-b` cannot persist the cookie, so it loops through
+bootstrap; `curl` without `-c/-b` cannot persist the cookie, so it loops through
 the handshake forever and never lands on the app. With a cookie jar it returns
 `200` immediately. A browser with no Streamlit session renders the app fine.
 
@@ -439,7 +439,7 @@ central claim of this repo, that 0.8513 is the defensible estimate and 0.9557 is
 self-flattery, had never been checked against anything outside my own code. The
 competition's private leaderboard is scored on a period starting 30 days after
 training ends, which is exactly what the embargoed CV was built to imitate. So I
-wrote a prediction into`submit.py` **before** submitting: the score should land
+wrote a prediction into `submit.py` **before** submitting: the score should land
 near 0.8513.
 
 It did not.
@@ -464,7 +464,7 @@ optimistic and tightened it further with an embargo. That tightening moved it
 *away* from the truth: the contiguous chronological estimate (0.8866) was closer
 to the leaderboard than the embargoed one I replaced it with.
 
-The mechanism was already sitting in`reports/overfit.csv` and I read it as a
+The mechanism was already sitting in `reports/overfit.csv` and I read it as a
 caveat instead of a prediction:
 
 | fold | training history | val AUC |

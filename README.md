@@ -167,4 +167,4 @@ the code uses the method, the dataset or the metric it describes.
 ## Author and licence
 
 Aghasalim Mustafazada. MIT, see [LICENSE](LICENSE). The competition data is not
-redistributed here;`make data` fetches it from Kaggle under their terms.
+redistributed here; `make data` fetches it from Kaggle under their terms.
