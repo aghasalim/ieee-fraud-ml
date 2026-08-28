@@ -136,7 +136,7 @@ was materially better than I believed.
 Entry 5 of NOTES.md is left unedited rather than quietly rewritten, it was my
 reasoning at the time, and it was wrong in an instructive way.
 
-Full reasoning in **[NOTES.md](NOTES.md)**.
+Full reasoning in **[NOTES.md](../NOTES.md)**.
 
 ---
 
@@ -366,5 +366,5 @@ docker build -t ieee-fraud-ml . && docker run -p 8501:8501 ieee-fraud-ml
 `data.py` distinguishes "no token" from "rules not accepted", Kaggle reports both
 as a bare 403, which is unhelpful when you're stuck.
 
-MIT, see [LICENSE](LICENSE). The competition data is not redistributed here;
+MIT, see [LICENSE](../LICENSE). The competition data is not redistributed here;
 `make data` fetches it from Kaggle under their terms.
