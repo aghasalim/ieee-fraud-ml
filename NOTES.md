@@ -215,7 +215,7 @@ everything fold-local).`make train`.
 
 | features | n | train AUC | val AUC | delta |
 |---|---|---|---|---|
-| raw columns only | 432 | 0.9945 | 0.8733 |, |
+| raw columns only | 432 | 0.9945 | 0.8733 | - |
 | + engineered base (time, amount transforms) | 438 | 0.9962 | 0.8761 | +0.0028 |
 | + frequency encoding | 443 | 0.9971 | **0.8839** | **+0.0078** |
 | + uid aggregates | 447 | 0.9975 | 0.8843 | +0.0004 |
@@ -450,7 +450,7 @@ It did not.
 | chronological + global TE | 0.9318 | +0.0232 |
 | chronological + fold-local, contiguous | 0.8866 | −0.0220 |
 | chronological + fold-local, 30-day embargo ("honest") | 0.8513 | **−0.0573** |
-| **private leaderboard (the actual answer)** | **0.9086** |, |
+| **private leaderboard (the actual answer)** | **0.9086** | - |
 
 (Public LB 0.9359; private is the larger split and the one that counts.)
 
@@ -470,7 +470,7 @@ caveat instead of a prediction:
 | fold | training history | val AUC |
 |---|---|---|
 | 1 | least | 0.8672 |
-| 2 |, | 0.8855 |
+| 2 | - | 0.8855 |
 | 3 | most | 0.9003 |
 
 AUC climbs monotonically with training history, and the submitted model trains on

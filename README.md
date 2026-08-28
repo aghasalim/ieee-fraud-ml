@@ -41,7 +41,7 @@ influence. The leakage finding held; the number I called most defensible did not
 | chronological + global TE | 0.9318 | +0.0232 |
 | chronological + fold-local, contiguous | 0.8866 | −0.0220 |
 | chronological + fold-local, 30-day embargo | 0.8513 | **−0.0573** |
-| **private leaderboard (the actual answer)** | **0.9086** |, |
+| **private leaderboard (the actual answer)** | **0.9086** | - |
 
 Expanding-window CV estimates a model trained on a fraction of the data, not
 the one you ship, and the embargo removes another 30 days per fold that the
@@ -59,7 +59,7 @@ ending 30 days before the test period. Full table in
 
 | features | train AUC | val AUC | delta |
 |---|---|---|---|
-| raw columns only | 0.9945 | 0.8733 |, |
+| raw columns only | 0.9945 | 0.8733 | - |
 | + engineered base | 0.9962 | 0.8761 | +0.0028 |
 | + frequency encoding | 0.9971 | **0.8839** | **+0.0078** |
 | + uid aggregates | 0.9975 | 0.8843 | +0.0004 |
