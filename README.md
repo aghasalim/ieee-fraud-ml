@@ -52,7 +52,10 @@ Full reasoning in [notes/METHODS.md](notes/METHODS.md#1-the-headline-my-own-conc
 
 590,540 × 394 transactions left-joined to 144,233 identity rows, **3.499%**
 fraud, **24.4%** identity coverage, **172** columns 50 to 90% missing, 182 days
-ending 30 days before the test period. Full table in
+ending 30 days before the test period. The worst single column, `dist2`, is
+93.6% missing. Fraud is not spread evenly across product codes: 11.7% on C
+against 2.0% on W, a 5.7x spread, and W is the largest code at 439,670 rows.
+Full table in
 [notes/METHODS.md](notes/METHODS.md#2-what-the-data-actually-looks-like).
 
 ## The feature that backfired
