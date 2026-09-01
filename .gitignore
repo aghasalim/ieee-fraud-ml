@@ -18,3 +18,7 @@ artifacts/*.txt
 
 # 14 MB and regenerable via `make submit`; the code is what matters, not the file.
 reports/submission.csv
+
+# Build products of the verification harness. The sources in verify/ are
+# tracked; what they compile to is not.
+verify/pairs/target/

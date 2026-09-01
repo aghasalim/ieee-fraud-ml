@@ -1,4 +1,4 @@
-.PHONY: setup data eda validate features train submit app docker test clean
+.PHONY: setup data eda validate features train submit app docker test verify clean
 PY := .venv/bin/python
 
 setup:
@@ -36,6 +36,9 @@ docker:
 
 test:
 	$(PY) -m pytest tests/ -q
+
+verify:          ## recompute the published numbers in every language in verify/
+	./verify/verify.sh
 
 clean:
 	# reports/figures is tracked and the README embeds it -- regenerate

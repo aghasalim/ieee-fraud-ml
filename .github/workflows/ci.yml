@@ -18,3 +18,39 @@ jobs:
       # No Kaggle credentials in CI, by design: everything asserted here runs on
       # the synthetic generator, so the suite is reproducible by anyone.
       - run: python -m pytest tests/ -q
+
+  verify:
+    # Recompute the published numbers in every language under verify/ and
+    # require them to agree. sqlite3, gcc, go, cargo and node are already on the
+    # runner; only R has to be installed.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install R if the runner does not have it
+        shell: bash
+        run: |
+          if ! command -v Rscript >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends r-base-core
+          fi
+          Rscript --version
+      - name: every implementation agrees
+        shell: bash
+        run: |
+          ./verify/verify.sh | tee verify.log
+          # Nothing may be quietly skipped: a missing toolchain here would mean
+          # a number was checked by fewer implementations than the README says.
+          grep -qE '^[0-9]+ passed, 0 failed, 0 skipped$' verify.log
+      - name: the harness rejects a corrupted table
+        shell: bash
+        run: |
+          sed -i '2s/0.8975/0.9100/' reports/validation_gap_synthetic.csv
+          if ./verify/verify.sh; then
+            echo "the harness accepted a corrupted published AUC"
+            exit 1
+          fi
+          echo "rejected, as it should be"
+          git checkout -- reports/validation_gap_synthetic.csv
+      - name: and passes again once it is restored
+        shell: bash
+        run: ./verify/verify.sh

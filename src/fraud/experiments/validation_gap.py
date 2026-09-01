@@ -76,15 +76,21 @@ def _apply_te(df: pd.DataFrame, mapping: pd.Series, prior: float) -> np.ndarray:
     return df["card"].map(mapping).fillna(prior).to_numpy()
 
 
-def evaluate(df: pd.DataFrame, folds, global_te: bool) -> float:
-    """Mean out-of-fold AUC under one (split, encoding) combination."""
+def evaluate(df: pd.DataFrame, folds, global_te: bool, scored: list | None = None) -> float:
+    """Mean out-of-fold AUC under one (split, encoding) combination.
+
+    If `scored` is given, each fold's validation labels and scores are appended
+    to it. Those are the rawest thing this experiment produces, and `run` writes
+    them out so that the published AUC can be recomputed from them by something
+    other than the code that produced it. See verify/.
+    """
     import lightgbm as lgb
 
     prior = float(df["y"].mean())
     global_map = _te_map(df, np.arange(len(df)), prior) if global_te else None
 
     aucs = []
-    for tr, va in folds:
+    for k, (tr, va) in enumerate(folds, start=1):
         d = df.copy()
         mapping = global_map if global_te else _te_map(df, tr, prior)
         d["card_te"] = _apply_te(d, mapping, prior)
@@ -96,6 +102,12 @@ def evaluate(df: pd.DataFrame, folds, global_te: bool) -> float:
         model.fit(d.iloc[tr][FEATURES], d.iloc[tr]["y"])
         p = model.predict_proba(d.iloc[va][FEATURES])[:, 1]
         aucs.append(roc_auc_score(d.iloc[va]["y"], p))
+        if scored is not None:
+            scored.append(pd.DataFrame({
+                "fold": k,
+                "y": d.iloc[va]["y"].to_numpy(),
+                "score": p,
+            }))
     return float(np.mean(aucs))
 
 
@@ -110,10 +122,15 @@ def run(df: pd.DataFrame | None = None) -> pd.DataFrame:
     shuffled = split.random_kfold(df)
     chrono = split.expanding_window_folds(df)
 
-    rows = []
+    rows, scores = [], []
     for split_name, folds in (("shuffled K-fold", shuffled), ("chronological", chrono)):
         for te_name, gte in (("global", True), ("fold-local", False)):
-            auc = evaluate(df, folds, gte)
+            per_fold: list[pd.DataFrame] = []
+            auc = evaluate(df, folds, gte, scored=per_fold)
+            per_row = pd.concat(per_fold, ignore_index=True)
+            per_row.insert(0, "target encoding", te_name)
+            per_row.insert(0, "split", split_name)
+            scores.append(per_row)
             leak = split.max_train_time_beyond_val(df, *folds[0][:2])
             overlap = split.entity_overlap(df, folds[0][0], folds[0][1], "card")
             rows.append({
@@ -130,11 +147,20 @@ def run(df: pd.DataFrame | None = None) -> pd.DataFrame:
     dest = config.REPORTS / f"validation_gap_{source}.csv"
     out.to_csv(dest, index=False)
 
+    # The per-row scores behind every AUC above. Eight significant digits is
+    # more than enough to reproduce the ranking the metric depends on, and
+    # keeps the file small enough to keep in the repository.
+    raw = config.REPORTS / f"validation_gap_scores_{source}.csv"
+    pd.concat(scores, ignore_index=True).to_csv(
+        raw, index=False, float_format="%.8g"
+    )
+
     honest = out.query("split == 'chronological' and `target encoding` == 'fold-local'")["AUC"].iloc[0]
     worst = out["AUC"].max()
     print(f"\nmost flattering setup reads {worst:.4f}; the defensible one reads {honest:.4f}")
     print(f"inflation: +{worst - honest:.4f} AUC of pure self-congratulation")
     print(f"-> {dest}")
+    print(f"-> {raw}")
     return out
 
 
