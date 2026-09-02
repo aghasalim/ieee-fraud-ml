@@ -103,6 +103,8 @@ run go    "Go, file structure and README claims"    go      check_go
 run js    "JavaScript, derived columns"             node    node verify/tables.js "$root"
 run r     "R, bootstrap interval and calibration"   Rscript Rscript verify/verify.R "$root"
 run rust  "Rust, AUC from its definition"           cargo   check_rust
+run py    "Python, AUC and drift consistency"       python3 python3 verify/verify.py "$root"
+run rb    "Ruby, AUC and submission integrity"      ruby    ruby verify/verify.rb "$root"
 compare_auc
 
 printf '\n%s\n' "----------------------------------------"
