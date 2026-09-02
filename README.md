@@ -159,8 +159,7 @@ src/fraud/
   experiments/validation_gap.py  the 2×2 on synthetic data
   experiments/leakage_real.py    the 2×2 on 590k real transactions
 tests/                           14 tests, synthetic data only
-verify/                          the same numbers, recomputed in SQL, C, Go,
-                                 JavaScript, R and Rust
+verify/                          the same numbers, recomputed independently
 notes/METHODS.md                 the long-form methods write-up
 NOTES.md                         the decision trail
 ```
