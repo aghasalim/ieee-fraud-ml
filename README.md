@@ -12,7 +12,9 @@ Working the [IEEE-CIS Fraud Detection](https://www.kaggle.com/c/ieee-fraud-detec
 competition end to end, by a third-year Applied Computer Science (AI) student.
 What I'm actually trying to produce is **[NOTES.md](NOTES.md)**: a record of
 what I tried, what broke, and what I caught. A model that's slightly worse with
-an honest trail behind it beats a good score with no story. Full write-up in **[notes/METHODS.md](notes/METHODS.md)**.
+an honest trail behind it beats a good score with no story. Every number in here
+is recomputed from the raw scores by the independent implementations in
+`verify/`, and the build fails if they disagree. Full write-up in **[notes/METHODS.md](notes/METHODS.md)**.
 
 ---
 
@@ -114,83 +116,6 @@ volume scores near 0.70. Pooled OOF AUC (0.7954) disagrees with mean per-fold
 AUC (0.8839) because fold models are differently calibrated, so I report
 per-fold. AUC rising across the validation window is confounded with later folds
 having more training history.
-
-## Every number in here is now computed at least twice
-
-Everything above came out of one Python process. The AUCs came from sklearn, the
-tables came from pandas, and every chart was drawn from those same tables. The 14
-tests check that the code runs, not that its arithmetic is right, so a mistake in
-the metric or in one of the aggregations would be invisible: everything
-downstream reads the output of the thing that made the mistake.
-
-So `make validate` now also writes out the 220,000 per-row validation scores it
-scored, to
-[`reports/validation_gap_scores_synthetic.csv`](reports/validation_gap_scores_synthetic.csv),
-and the four AUCs of the synthetic 2x2 are rebuilt from that file by five
-implementations in five other languages. The summary tables are checked against
-each other and against this README. CI fails if any two disagree. That file is
-9.1 MB, which is more than I would normally keep in a repository, but the point
-is that the arithmetic can be checked without a Kaggle account, so it has to be
-here.
-
-| implementation | what it recomputes | measured agreement |
-| --- | --- | --- |
-| [`verify/auc.sql`](verify/auc.sql) | the four AUCs with window-function mid-ranks, and the population that five separate tables under `reports/` describe | AUCs identical to 12 decimals; the five tables agree on 442,905 rows exactly and on the fraud count to 0.105% |
-| [`verify/auc.c`](verify/auc.c) | the metric kernel, columns resolved by name | identical to 12 decimals |
-| [`verify/gocheck`](verify/gocheck) | the AUCs again, the structure of every CSV under `reports/`, and 38 numbers this README quotes | identical to 12 decimals; all 38 claims still match their file |
-| [`verify/tables.js`](verify/tables.js) | every published column that is arithmetic on its own neighbours, and every number one table quotes from another | 9 checks, largest residual 1.0e-04, which is the rounding in `ablation.csv` |
-| [`verify/verify.R`](verify/verify.R) | the AUCs with R's own `rank()`, a bootstrap interval on the headline gap, and the calibration sentence | identical to 12 decimals |
-| [`verify/pairs`](verify/pairs) | AUC from the pairwise definition, 97,214,494 comparisons, and the Monte Carlo error in that interval | identical to 12 decimals |
-
-Run them with [`./verify/verify.sh`](verify/verify.sh) or `make verify`. Each is
-skipped with a message if its toolchain is missing, so a partial install still
-runs the rest.
-
-**Agreeing with each other is the part that bites.** Every implementation lands
-between 1.1e-05 and 4.5e-05 of the published AUC, which is just the rounding in a
-table printed to four decimals and the most that table can express. Against each
-other they are identical to twelve decimals. That is the tighter test: when I
-broke the tie handling in the C on purpose, using minimum ranks instead of
-mid-ranks, the error was 4.0e-07 and 1.0e-06. Both sit well inside what a
-four-decimal table can carry, so the C still passed its own check against the
-published number. Only the comparison between implementations caught it.
-
-**The headline has an interval now.** "An inflation of 0.28 AUC" was a point
-estimate with nothing under it. Resampling the scored rows within each fold, 1000
-draws in base R, puts it at 0.2809 with a 95% interval of 0.2668 to 0.2959. The
-Rust runs 10,000 draws as a reference, 0.2663 to 0.2950, and then twenty
-independent 1000 draw runs to price the noise in the R interval: the lower end
-has a standard deviation of 0.00056, so it sits 478 of its own standard
-deviations above zero. 1000 draws was more than enough for the claim I make from
-it, which was an assumption before.
-
-**The calibration sentence is checked rather than asserted.** The claim above is
-that calibration is fine above 25% and badly off below 1%. In
-[`reports/ea_calibration.csv`](reports/ea_calibration.csv) the lowest bucket
-under-predicts by 6.77x, and across the three buckets above 0.25 the worst
-departure in either direction is 1.07x.
-
-**The harness is itself checked.** CI runs it, corrupts a table, requires it to
-be rejected, restores it and requires a pass. A check that cannot fail is not
-evidence. Each implementation catches what it is responsible for and nothing
-else:
-
-| what I corrupted | what caught it |
-| --- | --- |
-| one published AUC in `validation_gap_synthetic.csv` | SQL, C, Go, R, Rust |
-| one label out of 220,000 in the score file | SQL, C, Go, R, Rust |
-| the tie handling inside `verify/auc.c` | the cross-implementation comparison only |
-| a NaN in `ea_drift.csv` | Go |
-| one row count in `ea_segments.csv` | SQL, Go |
-| "10.4 AUC points" in this README | Go |
-| the derived gap column in `ablation.csv` | JavaScript |
-| the lowest bucket in `ea_calibration.csv` | SQL, R |
-| one precision in `ea_budget.csv` | SQL, Go |
-| the transaction count in `eda_summary.csv` | Go, JavaScript |
-
-Six languages is where this stopped being useful rather than where I ran out.
-Every implementation above has a job the others do not do; a seventh would have
-been a fourth way to write the same rank sum.
 
 ## Running it
 
