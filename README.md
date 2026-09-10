@@ -9,7 +9,7 @@ the SHAP contributions behind it, and the honest validation number.
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Working the [IEEE-CIS Fraud Detection](https://www.kaggle.com/c/ieee-fraud-detection)
-competition end to end, by a third-year Applied Computer Science (AI) student.
+competition end to end.
 What I'm actually trying to produce is **[NOTES.md](NOTES.md)**: a record of
 what I tried, what broke, and what I caught. A model that's slightly worse with
 an honest trail behind it beats a good score with no story. Every number in here
@@ -159,15 +159,14 @@ src/fraud/
   experiments/validation_gap.py  the 2×2 on synthetic data
   experiments/leakage_real.py    the 2×2 on 590k real transactions
 tests/                           14 tests, synthetic data only
-verify/                          the same numbers, recomputed independently
+verify/                          cross-language recomputation of every figure
 notes/METHODS.md                 the long-form methods write-up
 NOTES.md                         the decision trail
 ```
 
 ## References
 
-The papers and sources this implementation follows. Each one is here because
-the code uses the method, the dataset or the metric it describes.
+What I read to build this, and what each one gave me.
 
 - **Ke, Meng, Finley et al. LightGBM: A Highly Efficient Gradient Boosting Decision Tree. NeurIPS 2017.** the model.
 - **Lundberg, Lee. A Unified Approach to Interpreting Model Predictions. NeurIPS 2017.** [arXiv:1705.07874](https://arxiv.org/abs/1705.07874) SHAP, used for the decision trail.
