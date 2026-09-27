@@ -1,7 +1,7 @@
 # Real-World Tabular ML, a decision trail, not a leaderboard score
 
 **[▶ Live demo](https://ieee-fraud-ml.streamlit.app/)** · every prediction shows
-the SHAP contributions behind it, and the honest validation number.
+the SHAP contributions behind it, and the leak-free validation number.
 
 [![ci](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/ci.yml/badge.svg)](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/ci.yml)
 [![demo-link](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/demo.yml/badge.svg)](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/demo.yml)
@@ -11,8 +11,7 @@ the SHAP contributions behind it, and the honest validation number.
 Working the [IEEE-CIS Fraud Detection](https://www.kaggle.com/c/ieee-fraud-detection)
 competition end to end.
 What I'm actually trying to produce is **[NOTES.md](NOTES.md)**: a record of
-what I tried, what broke, and what I caught. A model that's slightly worse with
-an honest trail behind it beats a good score with no story. Every number in here
+what I tried, what broke, and what I caught. A slightly worse model I can explain step by step beats a good score with no story. Every number in here
 is recomputed from the raw scores by the independent implementations in
 `verify/`, and the build fails if they disagree. Full write-up in **[notes/METHODS.md](notes/METHODS.md)**.
 
@@ -109,8 +108,7 @@ Missed-fraud profile and calibration numbers in [notes/METHODS.md](notes/METHODS
 ## Limitations
 
 The train to validation gap is 0.09 to 0.13 everywhere and mostly is not
-fixable: it barely moves under regularisation while validation improves, which
-points at temporal shift instead of capacity. The best iteration count varies
+fixable: it barely moves under regularisation while validation improves, which points at temporal shift, not capacity. The best iteration count varies
 8× across folds, so no single `n_estimators` suits most of them. About 80% of
 volume scores near 0.70. Pooled OOF AUC (0.7954) disagrees with mean per-fold
 AUC (0.8839) because fold models are differently calibrated, so I report
@@ -128,7 +126,7 @@ needs no Kaggle account and no credentials. It reproduces the finding, not the
 table: on synthetic rows the four cells read 0.8975, 0.6779, 0.8889 and 0.6166,
 an inflation of 0.28 AUC, against 0.07 on the real data. The numbers in the
 table above come from the real 590k transactions and need the token, which is
-`make leakage-real`. `make test` runs 14 tests against the real code path instead of mocks, so they would catch the headline claim silently breaking.
+`make leakage-real`. `make test` runs 14 tests against the real code path with no mocks, so they would catch the headline claim silently breaking.
 
 For the actual competition data you need a Kaggle token
 (Settings → API → Create New API Token) and to accept the
