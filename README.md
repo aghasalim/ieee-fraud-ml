@@ -110,7 +110,7 @@ Missed-fraud profile and calibration numbers in [notes/METHODS.md](notes/METHODS
 
 The train to validation gap is 0.09 to 0.13 everywhere and mostly is not
 fixable: it barely moves under regularisation while validation improves, which
-points at temporal shift rather than capacity. The best iteration count varies
+points at temporal shift instead of capacity. The best iteration count varies
 8× across folds, so no single `n_estimators` suits most of them. About 80% of
 volume scores near 0.70. Pooled OOF AUC (0.7954) disagrees with mean per-fold
 AUC (0.8839) because fold models are differently calibrated, so I report
@@ -128,8 +128,7 @@ needs no Kaggle account and no credentials. It reproduces the finding, not the
 table: on synthetic rows the four cells read 0.8975, 0.6779, 0.8889 and 0.6166,
 an inflation of 0.28 AUC, against 0.07 on the real data. The numbers in the
 table above come from the real 590k transactions and need the token, which is
-`make leakage-real`. `make test` runs 14 tests against the real code path rather
-than mocks, so they would catch the headline claim silently breaking.
+`make leakage-real`. `make test` runs 14 tests against the real code path instead of mocks, so they would catch the headline claim silently breaking.
 
 For the actual competition data you need a Kaggle token
 (Settings → API → Create New API Token) and to accept the
