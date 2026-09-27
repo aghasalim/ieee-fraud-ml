@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: If you use this work, please cite it as below.
+title: "Real-World Tabular ML, a decision trail, not a leaderboard score"
+abstract: "IEEE-CIS fraud detection end to end with leak-free validation and a documented decision trail. 0.9086 on the private leaderboard."
+type: software
+authors:
+  - family-names: Mustafazada
+    given-names: Aghasalim
+    orcid: "https://orcid.org/0009-0001-8746-4582"
+    affiliation: "Howest University of Applied Sciences"
+repository-code: "https://github.com/aghasalim/ieee-fraud-ml"
+url: "https://aghasalim.github.io/"
+license: MIT
+keywords:
+  - feature engineering
+  - fraud detection
+  - gradient boosting
+  - kaggle
+  - machine learning
+  - tabular data
