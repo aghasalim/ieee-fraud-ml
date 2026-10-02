@@ -7,7 +7,7 @@ path rather than mocking it, just at a smaller size.
 """
 import pytest
 
-from src.fraud import config, split
+from src.fraud import split
 from src.fraud.experiments import validation_gap as vg
 
 
