@@ -13,7 +13,6 @@
 # No dependencies beyond the standard library.
 
 import csv
-import math
 import os
 import sys
 
