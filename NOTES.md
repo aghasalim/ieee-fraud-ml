@@ -501,6 +501,23 @@ predictions, which sets a floor on how finely these numbers can be read, the
 
 ---
 
+## 13. The target encoding was leaking each training row's own label (2026-10-10)
+
+The "fold-local" target encoding in `features.add_target_encoding` used only
+training labels, which is what I checked, but it encoded every training row
+with a mean that included that row's own label. With 13,553 cards and near
+unique `_uid` keys the encoding is close to the label itself, which is exactly
+why train AUC hit 1.0000 in the ablation. I blamed that on the model memorising
+customers. It was the feature handing it the answer.
+
+Training rows are now encoded out of fold (5 folds inside the training window)
+and validation rows use the full training window. `tests/test_features.py`
+checks that a unique key gives every training row the prior. The ablation row
+"+ target encoding" and the README paragraph on it were produced by the old
+code and need a rerun on the Kaggle data, which is not on this machine.
+
+---
+
 ## Still outstanding
 
 - Hyperparameter tuning, deliberately untouched, since every number above is
