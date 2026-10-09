@@ -73,21 +73,22 @@ def _build(df, tr_idx, groups: set[str]) -> tuple[pd.DataFrame, list[str]]:
     return d, cols
 
 
+STEPS = [
+    ("raw columns only", set()),
+    ("+ engineered base", {"engineered_base"}),
+    ("+ frequency encoding", {"engineered_base", "frequency"}),
+    ("+ uid aggregates", {"engineered_base", "frequency", "uid_aggs"}),
+    ("+ target encoding", {"engineered_base", "frequency", "uid_aggs", "target_enc"}),
+]
+
+
 def ablation() -> pd.DataFrame:
     df = prepare()
     folds = split.expanding_window_folds(df, n_folds=N_FOLDS, gap=GAP)
     print(f"rows={len(df):,}  folds={len(folds)}  embargo={GAP/config.DAY:.0f}d")
 
-    steps = [
-        ("raw columns only", set()),
-        ("+ engineered base", {"engineered_base"}),
-        ("+ frequency encoding", {"engineered_base", "frequency"}),
-        ("+ uid aggregates", {"engineered_base", "frequency", "uid_aggs"}),
-        ("+ target encoding", {"engineered_base", "frequency", "uid_aggs", "target_enc"}),
-    ]
-
     rows, prev = [], None
-    for name, groups in steps:
+    for name, groups in STEPS:
         tr_aucs, va_aucs = [], []
         for tr, va in folds:
             d, cols = _build(df, tr, groups)
@@ -164,6 +165,13 @@ APP_FIELDS = ["TransactionAmt", "ProductCD", "card1", "card4", "card6", "addr1",
               "V257", "V258", "has_identity"]
 
 
+def final_val_auc() -> float:
+    """Validation AUC of the FINAL_GROUPS row in reports/ablation.csv."""
+    name = next(n for n, g in STEPS if g == FINAL_GROUPS)
+    table = pd.read_csv(config.REPORTS / "ablation.csv").set_index("features")
+    return float(table.loc[name, "val AUC"])
+
+
 def fit_final():
     """Train on the full period and persist the model for the app.
 
@@ -193,7 +201,7 @@ def fit_final():
         {"model": m, "columns": cols,
          "defaults": d[cols].median(numeric_only=True).to_dict(),
          "app_fields": APP_FIELDS,
-         "val_auc": 0.8839, "n_train": int(len(d))},
+         "val_auc": final_val_auc(), "n_train": int(len(d))},
         config.ARTIFACTS / "model.pkl", compress=3,
     )
     print(f"saved {config.ARTIFACTS/'model.pkl'}  features={len(cols)}")
