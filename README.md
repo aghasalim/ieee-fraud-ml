@@ -1,7 +1,7 @@
 # Real-World Tabular ML, a decision trail, not a leaderboard score
 
-**[▶ Live demo](https://ieee-fraud-ml.streamlit.app/)** · every prediction shows
-the SHAP contributions behind it, and the leak-free validation number.
+**[▶ Live demo](https://ieee-fraud-ml.streamlit.app/)** · each prediction comes
+with its SHAP contributions and the leak-free validation number.
 
 [![ci](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/ci.yml/badge.svg)](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/ci.yml)
 [![demo-link](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/demo.yml/badge.svg)](https://github.com/aghasalim/ieee-fraud-ml/actions/workflows/demo.yml)
@@ -9,12 +9,14 @@ the SHAP contributions behind it, and the leak-free validation number.
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23003651.svg)](https://doi.org/10.5281/zenodo.23003651)
 
-Working the [IEEE-CIS Fraud Detection](https://www.kaggle.com/c/ieee-fraud-detection)
+I worked through the [IEEE-CIS Fraud Detection](https://www.kaggle.com/c/ieee-fraud-detection)
 competition end to end.
-What I'm actually trying to produce is **[NOTES.md](NOTES.md)**: a record of
-what I tried, what broke, and what I caught. A slightly worse model I can explain step by step beats a good score with no story. Every number in here
-is recomputed from the raw scores by the independent implementations in
-`verify/`, and the build fails if they disagree. Full write-up in **[notes/METHODS.md](notes/METHODS.md)**.
+The thing I really wanted out of it is [NOTES.md](NOTES.md). It's a log of
+what I tried, the things that broke and the mistakes I caught. I'd rather have a
+slightly worse model I can explain step by step than a good score with no story
+behind it. Every number in here is recomputed from the raw scores by the
+independent implementations in `verify/`, and the build fails if they don't
+agree. The full write-up is in [notes/METHODS.md](notes/METHODS.md).
 
 ---
 
@@ -22,10 +24,10 @@ is recomputed from the raw scores by the independent implementations in
 
 ![the protocol is worth 10.4 AUC points](reports/figures/leakage.png)
 
-Model, features and rows stay fixed across those six bars; only the way the
-folds are cut changes. On all 590,540 real transactions that moves AUC from
-0.9557 to 0.8513. The right panel is the mechanism: card overlap between train
-and validation falls from 86% to 31%.
+The model, features and rows stay the same across those six bars. The only
+thing I change is how the folds are cut. I ran it on all 590,540 real
+transactions, and AUC drops from 0.9557 to 0.8513. The right panel shows why.
+Card overlap between train and validation falls from 86% to 31%.
 
 | split | target encoding | AUC |
 |---|---|---|
@@ -34,8 +36,9 @@ and validation falls from 86% to 31%.
 | chronological | global | 0.9318 |
 | chronological | fold-local | 0.8866 |
 
-I submitted to the competition to check this against a scorer I can't
-influence. The leakage finding held; the number I called most defensible did not:
+I submitted to the competition so I could check this against a scorer I can't
+influence. The leakage finding held up. The number I'd called the most
+defensible didn't.
 
 | configuration | AUC | vs leaderboard |
 |---|---|---|
@@ -45,19 +48,21 @@ influence. The leakage finding held; the number I called most defensible did not
 | chronological + fold-local, 30-day embargo | 0.8513 | **−0.0573** |
 | **private leaderboard (the actual answer)** | **0.9086** | - |
 
-Expanding-window CV estimates a model trained on a fraction of the data, not
-the one you ship, and the embargo removes another 30 days per fold that the
-final model never pays. A pessimistic estimate is still a biased one.
-Full reasoning in [notes/METHODS.md](notes/METHODS.md#1-the-headline-my-own-conclusion-was-wrong-and-i-caught-it).
+Expanding-window CV scores a model trained on a fraction of the data, and
+that isn't the model you ship. The embargo also removes another 30 days per
+fold, which the final model never pays for. So a pessimistic estimate is still
+a biased one. I wrote out the full reasoning in [notes/METHODS.md](notes/METHODS.md#1-the-headline-my-own-conclusion-was-wrong-and-i-caught-it).
 
 ## The data
 
-590,540 × 394 transactions left-joined to 144,233 identity rows, **3.499%**
-fraud, **24.4%** identity coverage, **172** columns 50 to 90% missing, 182 days
-ending 30 days before the test period. The worst single column, `dist2`, is
-93.6% missing. Fraud is not spread evenly across product codes: 11.7% on C
-against 2.0% on W, a 5.7x spread, and W is the largest code at 439,670 rows.
-Full table in
+The transaction table is 590,540 × 394. I left-joined it to 144,233 identity
+rows. Fraud is 3.499% of transactions, and identity coverage is only 24.4%.
+There are 172 columns that are 50 to 90% missing. The data covers 182 days and
+ends 30 days before the test period. The worst single column, `dist2`, is
+93.6% missing. Fraud isn't spread evenly across product codes. It's 11.7% on C
+and 2.0% on W, a 5.7x spread.
+W is also the largest code at 439,670 rows.
+The full table is in
 [notes/METHODS.md](notes/METHODS.md#2-what-the-data-actually-looks-like).
 
 ## The feature that looked like it backfired
@@ -70,21 +75,21 @@ Full table in
 | + uid aggregates | 0.9975 | 0.8843 | +0.0004 |
 | + target encoding | 0.9996 | **0.8925** | **+0.0082** |
 
-I first reported target encoding as costing 0.0312 AUC, with train AUC at
-1.0000, and blamed the model memorising customers. The real cause was my
-encoder: it kept validation labels out but encoded every training row with a
-category mean that included its own label, and with near unique card and uid
-keys that mean is the label. Encoding the training rows out of fold turns the
-same feature into the best group in the table, +0.0082. Computed globally it
-still inflates the score by 0.045. The shipped model predates this fix and
-does not use it. Detail in
+At first I reported that target encoding cost 0.0312 AUC, with train AUC at
+1.0000. I blamed the model for memorising customers. The real cause was my
+encoder. It kept the validation labels out, but it encoded every training row
+with a category mean that included that row's own label. Card and uid keys are
+close to unique, so that mean is the label. Once I encoded the
+training rows out of fold, the same feature became the best group in the table
+at +0.0082. Computed globally, it still inflates the score by 0.045. The
+shipped model predates this fix and doesn't use it. There's more detail in
 [notes/METHODS.md](notes/METHODS.md#3-the-feature-that-looked-like-it-backfired).
 
 ![feature groups against the train-validation gap](reports/figures/ablation.png)
 
 ## Error analysis
 
-The two weakest segments are also the two largest, and they overlap:
+The two weakest segments are also the two largest. They overlap, too.
 
 
 | segment | n | AUC | recall@1% |
@@ -92,7 +97,7 @@ The two weakest segments are also the two largest, and they overlap:
 | **ProductCD = W** | **355,414** | **0.7030** | 0.141 |
 | **no identity record** | **359,603** | **0.7066** | 0.145 |
 
-As a review queue, which is how this would be used:
+Here's how it does as a review queue, since that's how it would really be used.
 
 | review budget | recall | precision |
 |---|---|---|
@@ -100,9 +105,10 @@ As a review queue, which is how this would be used:
 | 1% (4,429) | 23.6% | 89.5% |
 | 5% (22,145) | **49.5%** | 37.5% |
 
-Calibration is fine above 25% and badly off below 1%, where it under-predicts by
-nearly 7×: irrelevant for AUC, decisive for any "auto-approve under 1%" rule.
-Missed-fraud profile and calibration numbers in [notes/METHODS.md](notes/METHODS.md#6-error-analysis).
+Calibration is fine above 25%. Below 1% it's badly off, and it under-predicts
+by nearly 7×. That doesn't matter for AUC. It matters a lot for any
+"auto-approve under 1%" rule. I put the missed-fraud profile and the
+calibration numbers in [notes/METHODS.md](notes/METHODS.md#6-error-analysis).
 
 ![reliability of the predicted probabilities](reports/figures/calibration.png)
 
@@ -112,13 +118,15 @@ Missed-fraud profile and calibration numbers in [notes/METHODS.md](notes/METHODS
 
 ## Limitations
 
-The train to validation gap is 0.09 to 0.13 everywhere and mostly is not
-fixable: it barely moves under regularisation while validation improves, which points at temporal shift, not capacity. The best iteration count varies
-8× across folds, so no single `n_estimators` suits most of them. About 80% of
-volume scores near 0.70. Pooled OOF AUC (0.7954) disagrees with mean per-fold
-AUC (0.8839) because fold models are differently calibrated, so I report
-per-fold. AUC rising across the validation window is confounded with later folds
-having more training history.
+The train to validation gap is 0.09 to 0.13 everywhere, and I can't fix most
+of it. It barely moves under regularisation while validation improves. To me
+that points at temporal shift, and I don't think capacity is the problem. The
+best iteration count varies 8× across folds, so no single `n_estimators` suits
+most of them. About 80% of volume scores near 0.70. Pooled OOF AUC (0.7954)
+disagrees with mean per-fold AUC (0.8839) because the fold models are
+calibrated differently. That's why I report per-fold. AUC does rise across the
+validation window, but that's confounded with later folds having more training
+history.
 
 ## Running it
 
@@ -126,16 +134,18 @@ having more training history.
 make setup && make validate
 ```
 
-Runs the same 2x2 on synthetic data when the competition data is absent, so it
-needs no Kaggle account and no credentials. It reproduces the finding, not the
-table: on synthetic rows the four cells read 0.8975, 0.6779, 0.8889 and 0.6166,
+If the competition data isn't there, this runs the same 2x2 on synthetic
+data. You don't need a Kaggle account or any credentials for it. It reproduces
+the finding. It won't reproduce the table. On synthetic rows the shuffled cells
+read 0.8975 and 0.6779. The chronological ones read 0.8889 and 0.6166. That's
 an inflation of 0.28 AUC, against 0.07 on the real data. The numbers in the
-table above come from the real 590k transactions and need the token, which is
-`make leakage-real`. `make test` runs 14 tests against the real code path with no mocks, so they would catch the headline claim silently breaking.
+table above come from the real 590k transactions. Those need the token, and
+`make leakage-real` runs them. `make test` runs 14 tests against the real code
+path with no mocks. They'd catch it if the headline claim ever broke silently.
 
-For the actual competition data you need a Kaggle token
-(Settings → API → Create New API Token) and to accept the
-[rules](https://www.kaggle.com/c/ieee-fraud-detection/rules):
+To use the real competition data you need a Kaggle token
+(Settings → API → Create New API Token). You also have to accept the
+[rules](https://www.kaggle.com/c/ieee-fraud-detection/rules).
 
 ```bash
 mkdir -p ~/.kaggle && echo 'KGAT_your_token_here' > ~/.kaggle/access_token && chmod 600 ~/.kaggle/access_token
@@ -147,7 +157,7 @@ make train-final && make app
 make docker && docker run -p 8501:8501 ieee-fraud-ml
 ```
 
-Scope checklist and deployment notes are in
+The scope checklist and deployment notes are in
 [notes/METHODS.md](notes/METHODS.md#10-deploy).
 
 ## Repository layout
@@ -176,5 +186,5 @@ What I read to build this, and what each one gave me.
 
 ## Author and licence
 
-Aghasalim Mustafazada. MIT, see [LICENSE](LICENSE). The competition data is not
-redistributed here; `make data` fetches it from Kaggle under their terms.
+Aghasalim Mustafazada. MIT, see [LICENSE](LICENSE). The competition data isn't
+redistributed here. `make data` fetches it from Kaggle under their terms.
