@@ -132,5 +132,5 @@ st.divider()
 st.markdown(
     "The point of this project is **[NOTES.md](https://github.com/aghasalim/"
     "ieee-fraud-ml/blob/main/NOTES.md)**, the decision trail, including the "
-    "feature that backfired and a hypothesis I measured and withdrew."
+    "feature I first blamed on memorisation and a hypothesis I measured and withdrew."
 )

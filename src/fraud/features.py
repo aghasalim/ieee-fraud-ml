@@ -72,11 +72,28 @@ def add_uid_aggs(df: pd.DataFrame, tr_idx: np.ndarray) -> pd.DataFrame:
 
 
 def add_target_encoding(df: pd.DataFrame, tr_idx: np.ndarray,
-                        cols: list[str]) -> pd.DataFrame:
+                        cols: list[str], n_folds: int = 5) -> pd.DataFrame:
+    """Smoothed per-category fraud rate, never computed from a row's own label.
+
+    Rows outside `tr_idx` get the rate over all training rows. Training rows get
+    it out of fold: each fold is encoded from the other folds only. Encoding the
+    training rows with their own labels included gave train AUC 1.0000, because
+    with near-unique keys the encoding is the label.
+    """
     out = df.copy()
-    prior = float(out.iloc[tr_idx][config.TARGET].mean())
-    for c in cols:
-        g = out.iloc[tr_idx].groupby(c)[config.TARGET].agg(["sum", "count"])
+    tr = out.iloc[tr_idx]
+    prior = float(tr[config.TARGET].mean())
+    folds = np.array_split(np.random.default_rng(config.SEED).permutation(len(tr_idx)), n_folds)
+
+    def rate(fit: pd.DataFrame, c: str, keys: pd.Series) -> np.ndarray:
+        g = fit.groupby(c)[config.TARGET].agg(["sum", "count"])
         m = (g["sum"] + prior * SMOOTH) / (g["count"] + SMOOTH)
-        out[f"{c}_te"] = out[c].map(m).fillna(prior).astype("float32")
+        return keys.map(m).fillna(prior).to_numpy(dtype="float32")
+
+    for c in cols:
+        te = rate(tr, c, out[c])
+        for f in folds:
+            rest = np.setdiff1d(np.arange(len(tr_idx)), f)
+            te[tr_idx[f]] = rate(tr.iloc[rest], c, tr[c].iloc[f])
+        out[f"{c}_te"] = te
     return out

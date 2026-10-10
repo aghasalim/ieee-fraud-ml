@@ -84,9 +84,9 @@ def leakage(out: Path) -> Path:
 def ablation(out: Path) -> Path:
     """Feature groups added one at a time, against the train-validation gap.
 
-    Target encoding is the instructive row: it drives training AUC to exactly
-    1.000 and costs 3.1 points of validation AUC. A leaderboard that reported
-    training performance would rank it first.
+    Target encoding is the instructive row: encoded out of fold it is the
+    largest gain. The first version leaked each training row's own label into
+    its encoding, drove training AUC to 1.000 and looked like a 3.1 point loss.
     """
     table = pd.read_csv(REPORTS / "ablation.csv")
     positions = np.arange(len(table))
@@ -94,7 +94,7 @@ def ablation(out: Path) -> Path:
 
     figure, (left, right) = plt.subplots(1, 2, figsize=(13.5, 5.0), sharey=True)
 
-    # Dots, not bars: the axis starts at 0.845, and a bar whose baseline is not
+    # Dots, not bars: the axis starts at 0.865, and a bar whose baseline is not
     # zero makes the length of the bar mean nothing.
     left.scatter(table["val AUC"], positions, s=110, color=colours, zorder=3)
     for index, value in enumerate(table["val AUC"]):
@@ -103,9 +103,9 @@ def ablation(out: Path) -> Path:
     left.set_yticks(positions)
     left.set_yticklabels(table["features"])
     left.invert_yaxis()
-    left.set_xlim(0.845, 0.893)
+    left.set_xlim(0.865, 0.900)
     left.set_xlabel("validation AUC (0 to 1)")
-    titled(left, "Only target encoding makes validation worse",
+    titled(left, "Target encoding, out of fold, is the largest gain",
            "Feature groups added cumulatively, chronological folds, 30 day embargo.")
 
     right.barh(positions, table["train-val gap"], 0.62, color=colours)
@@ -115,8 +115,8 @@ def ablation(out: Path) -> Path:
                    color="#444444")
     right.set_xlim(0, 0.20)
     right.set_xlabel("train AUC minus validation AUC (points)")
-    titled(right, "It pays for that by memorising cards",
-           "13,553 cards, so the encoding is close to a unique key per customer.")
+    titled(right, "And the train-validation gap narrows",
+           "Training rows are encoded out of fold, so no row sees its own label.")
 
     figure.tight_layout()
     figure.savefig(out)

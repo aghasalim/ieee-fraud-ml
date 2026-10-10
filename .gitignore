@@ -6,7 +6,7 @@ __pycache__/
 .env
 
 # Competition data is not redistributable -- `make data` fetches it from Kaggle.
-data/raw/
+data/raw
 data/processed/
 
 # Trained models are build outputs, reproducible via `make train`.

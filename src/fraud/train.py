@@ -159,7 +159,7 @@ def overfit_report() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------- final fit ---
-FINAL_GROUPS = {"engineered_base", "frequency"}  # uid aggs ~0, target enc harmful
+FINAL_GROUPS = {"engineered_base", "frequency"}  # chosen before the TE fix, see NOTES 13
 APP_FIELDS = ["TransactionAmt", "ProductCD", "card1", "card4", "card6", "addr1",
               "P_emaildomain", "hour", "dayofweek", "C1", "C13", "D1", "D15",
               "V257", "V258", "has_identity"]
@@ -175,8 +175,9 @@ def final_val_auc() -> float:
 def fit_final():
     """Train on the full period and persist the model for the app.
 
-    Feature set is the ablation winner, not the largest one: uid aggregates
-    bought +0.0004 and target encoding cost 0.0312, so neither is included.
+    Feature set was picked from the ablation before the target encoding fix,
+    when it looked like a 0.0312 loss. Out of fold it gains 0.0082, so it
+    belongs here; refitting the shipped model is still to do (NOTES.md 13).
     """
     import joblib
     import lightgbm as lgb

@@ -501,8 +501,34 @@ predictions, which sets a floor on how finely these numbers can be read, the
 
 ---
 
+## 13. The target encoding was leaking each training row's own label (2026-10-10)
+
+The "fold-local" target encoding in `features.add_target_encoding` used only
+training labels, which is what I checked, but it encoded every training row
+with a mean that included that row's own label. With 13,553 cards and near
+unique `_uid` keys the encoding is close to the label itself, which is exactly
+why train AUC hit 1.0000 in the ablation. I blamed that on the model memorising
+customers. It was the feature handing it the answer.
+
+Training rows are now encoded out of fold (5 folds inside the training window)
+and validation rows use the full training window. `tests/test_features.py`
+checks that a unique key gives every training row the prior.
+
+Rerun on the Kaggle data (2026-10-10), same folds and settings: the
+"+ target encoding" row went from train 1.0000 / val 0.8531 (delta -0.0312) to
+train 0.9996 / val 0.8925 (delta +0.0082). So entry 7 is wrong. Target encoding
+done properly is the best feature group in the ablation, and its train to
+validation gap is the smallest (0.1071). The global version still inflates the
+score by 0.045, so entry 2 stands. The shipped model and the submission were
+fitted on the old ablation winner (no target encoding) and I have not refitted
+them yet; that is now the first item below.
+
+---
+
 ## Still outstanding
 
+- Refit the shipped model and the submission with out of fold target encoding,
+  which the corrected ablation (entry 13) says is worth +0.0082.
 - Hyperparameter tuning, deliberately untouched, since every number above is
   about validation design, features and calibration rather than model capacity.
   The segment analysis suggests tuning is not where the remaining gains are.
