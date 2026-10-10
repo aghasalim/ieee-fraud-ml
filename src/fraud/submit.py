@@ -65,8 +65,9 @@ def build(out_path=None) -> "pd.DataFrame":
     y = both[config.TARGET].to_numpy()[:n_tr]
     print(f"  features {len(cols)}")
 
-    # Same configuration as the ablation winner: engineered base + frequency,
-    # no uid aggregates (+0.0004) and no target encoding (-0.0312).
+    # Same configuration as the shipped model: engineered base + frequency, no
+    # uid aggregates (+0.0004) and no target encoding (picked before the out of
+    # fold fix, see NOTES.md 13).
     m = lgb.LGBMClassifier(
         n_estimators=N_ESTIMATORS, learning_rate=0.05, num_leaves=63,
         colsample_bytree=0.7, subsample=0.8, subsample_freq=1,

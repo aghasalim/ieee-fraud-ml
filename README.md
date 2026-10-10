@@ -60,21 +60,25 @@ against 2.0% on W, a 5.7x spread, and W is the largest code at 439,670 rows.
 Full table in
 [notes/METHODS.md](notes/METHODS.md#2-what-the-data-actually-looks-like).
 
-## The feature that backfired
+## The feature that looked like it backfired
 
 | features | train AUC | val AUC | delta |
 |---|---|---|---|
 | raw columns only | 0.9945 | 0.8733 | - |
 | + engineered base | 0.9962 | 0.8761 | +0.0028 |
-| + frequency encoding | 0.9971 | **0.8839** | **+0.0078** |
+| + frequency encoding | 0.9971 | 0.8839 | +0.0078 |
 | + uid aggregates | 0.9975 | 0.8843 | +0.0004 |
-| + target encoding | **1.0000** | **0.8531** | **−0.0312** |
+| + target encoding | 0.9996 | **0.8925** | **+0.0082** |
 
-Per-entity target encoding made the model worse, and this is the correct
-fold-local version with no validation labels. With 13,553 cards it is nearly a
-unique key per customer, so the model memorises which customers defrauded.
-Computed globally it inflates the score by 0.045 instead. Detail in
-[notes/METHODS.md](notes/METHODS.md#3-the-feature-that-backfired).
+I first reported target encoding as costing 0.0312 AUC, with train AUC at
+1.0000, and blamed the model memorising customers. The real cause was my
+encoder: it kept validation labels out but encoded every training row with a
+category mean that included its own label, and with near unique card and uid
+keys that mean is the label. Encoding the training rows out of fold turns the
+same feature into the best group in the table, +0.0082. Computed globally it
+still inflates the score by 0.045. The shipped model predates this fix and
+does not use it. Detail in
+[notes/METHODS.md](notes/METHODS.md#3-the-feature-that-looked-like-it-backfired).
 
 ![feature groups against the train-validation gap](reports/figures/ablation.png)
 

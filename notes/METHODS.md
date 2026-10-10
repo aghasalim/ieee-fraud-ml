@@ -153,7 +153,7 @@ Full reasoning in **[NOTES.md](../NOTES.md)**.
 
 ---
 
-## 3. The feature that backfired
+## 3. The feature that looked like it backfired
 
 Incremental ablation under the honest split, chronological folds, 30-day
 embargo, every aggregate fold-local (`make train`):
@@ -162,20 +162,26 @@ embargo, every aggregate fold-local (`make train`):
 |---|---|---|---|
 | raw columns only | 0.9945 | 0.8733 |, |
 | + engineered base | 0.9962 | 0.8761 | +0.0028 |
-| + frequency encoding | 0.9971 | **0.8839** | **+0.0078** |
+| + frequency encoding | 0.9971 | 0.8839 | +0.0078 |
 | + uid aggregates | 0.9975 | 0.8843 | +0.0004 |
-| + target encoding | **1.0000** | **0.8531** | **−0.0312** |
+| + target encoding | 0.9996 | **0.8925** | **+0.0082** |
 
-Per-entity target encoding made the model **worse**, and this is the *correct*
-version, fold-local, no validation labels. Note the train column hitting
-1.0000: with 13,553 cards it hands the model a near-unique key per customer, so
-it memorises which customers defrauded during training rather than learning what
-fraud looks like. Across a 30-day gap those customers are gone.
+The first version of this table had target encoding at train AUC 1.0000 and
+validation 0.8531, a cost of 0.0312, and I explained it as the model memorising
+which customers defrauded. That was wrong. The encoder kept validation labels
+out, which is what I checked, but it encoded each training row with a category
+mean that included that row's own label. With 13,553 cards and near unique
+`_uid` keys, that mean is close to the label itself, so the feature handed the
+model the answer on the training rows and nothing comparable on validation.
 
-Which makes the feature bad in two separate ways, and it took both experiments to
-see it: computed globally it *inflates* your score (+0.045), computed correctly
-it *lowers* your real one (−0.031). The version that looks best and the version
-that works are different features, and neither is the one you want.
+Training rows are now encoded out of fold (5 folds inside the training window)
+and validation rows from the whole training window. Rerun on the same folds,
+target encoding is the largest single gain in the ablation, +0.0082, and the
+train to validation gap shrinks to 0.1071 instead of growing.
+
+So the global version still *inflates* the score (+0.045), and the correct
+version helps. The shipped model (`make train-final`) was chosen from the old
+table and leaves target encoding out; adding it back is still to do.
 
 `uid` aggregates were the other miss (+0.0004, i.e. noise), most likely
 redundant with C1, C14 and D1, D15, which are already per-entity counters built by
