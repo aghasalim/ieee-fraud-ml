@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/banner.jpg" alt="Line drawing of payment cards moving along a conveyor above a timeline, with one card flagged" width="100%"></p>
+
 # Real-World Tabular ML, a decision trail, not a leaderboard score
 
 **[▶ Live demo](https://ieee-fraud-ml.streamlit.app/)** · each prediction comes
@@ -19,6 +21,21 @@ independent implementations in `verify/`, and the build fails if they don't
 agree. The full write-up is in [notes/METHODS.md](notes/METHODS.md).
 
 ---
+
+<details>
+<summary>Contents</summary>
+
+- [The headline: the evaluation protocol is worth 10.4 AUC points](#the-headline-the-evaluation-protocol-is-worth-104-auc-points)
+- [The data](#the-data)
+- [The feature that looked like it backfired](#the-feature-that-looked-like-it-backfired)
+- [Error analysis](#error-analysis)
+- [Limitations](#limitations)
+- [Running it](#running-it)
+- [Repository layout](#repository-layout)
+- [References](#references)
+- [Author and licence](#author-and-licence)
+
+</details>
 
 ## The headline: the evaluation protocol is worth 10.4 AUC points
 
