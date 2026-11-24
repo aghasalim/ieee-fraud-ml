@@ -1,5 +1,3 @@
-<p align="center"><img src="assets/banner.jpg" alt="Line drawing of payment cards moving along a conveyor above a timeline, with one card flagged" width="100%"></p>
-
 # Real-World Tabular ML, a decision trail, not a leaderboard score
 
 **[▶ Live demo](https://ieee-fraud-ml.streamlit.app/)** · each prediction comes
